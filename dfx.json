@@ -2,11 +2,13 @@
   "canisters": {
     "wallet": {
       "main": "src/wallet/main.mo",
-      "type": "motoko"
+      "type": "motoko",
+      "candid": "src/wallet/wallet.did"
     },
     "payout": {
       "main": "src/payout/main.mo",
-      "type": "motoko"
+      "type": "motoko",
+      "candid": "src/payout/payout.did"
     }
   },
   "defaults": {
@@ -29,8 +31,13 @@
       "bind": "127.0.0.1:8000"
     },
     "ic": {
-      "providers": ["https://ic0.app"]
+      "providers": ["https://icp-api.io"]
     }
   },
-  "version": 1
+  "version": 1,
+  "metadata": [
+    {
+      "name": "candid:service"
+    }
+  ]
 } 
