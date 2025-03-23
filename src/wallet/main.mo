@@ -5,6 +5,9 @@ import Iter "mo:base/Iter";
 import Time "mo:base/Time";
 
 actor Wallet {
+    // Types
+    type TokenIndex = Nat;
+    
     // External canister IDs
     private let NFT_CANISTER_1 = "erfen-7aaaa-aaaap-ahniq-cai"; // Daku Motoko
     private let NFT_CANISTER_2 = "v6gck-vqaaa-aaaal-qi3sa-cai"; // GG Album Release
@@ -42,6 +45,35 @@ actor Wallet {
     // Initialize
     loadStableStorage();
     
+    // Query NFT count from a specific canister
+    private func queryNFTCount(user: Principal, canisterId: Text) : async Nat {
+        try {
+            if (canisterId == NFT_CANISTER_1) {
+                // Daku Motoko specific interface
+                let canister = actor(canisterId) : actor {
+                    getRegistry : () -> async [(Principal, [Nat])];
+                };
+                
+                let registry = await canister.getRegistry();
+                for ((owner, tokens) in registry.vals()) {
+                    if (owner == user) {
+                        return tokens.size();
+                    };
+                };
+                return 0;
+            } else {
+                // GG Album Release interface
+                let canister = actor(canisterId) : actor {
+                    tokens : (Principal) -> async [Nat32];
+                };
+                let tokens = await canister.tokens(user);
+                return tokens.size();
+            };
+        } catch (_) {
+            return 0;
+        };
+    };
+    
     // Update NFT count for a user (with caching)
     public shared func updateNFTCount(user: Principal) : async Nat {
         // Check if we need to update (5-minute cache)
@@ -62,16 +94,6 @@ actor Wallet {
         saveToStableStorage();
         
         totalCount;
-    };
-    
-    // Query NFT count from a specific canister
-    private func queryNFTCount(user: Principal, canisterId: Text) : async Nat {
-        let canister = actor(canisterId) : actor {
-            getOwnedNFTs : (Principal) -> async [Nat];
-        };
-        
-        let nfts = await canister.getOwnedNFTs(user);
-        nfts.size();
     };
     
     // Get NFT count for a user
@@ -102,4 +124,4 @@ actor Wallet {
             case null { 0 };
         };
     };
-} 
+}; 

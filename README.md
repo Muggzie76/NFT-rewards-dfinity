@@ -76,6 +76,47 @@ dfx ledger transfer --network ic --amount 1.0 <PAYOUT_CANISTER_ID>
   - NFT Collection 2: `xkbqi-2qaaa-aaaaa-aaaba-cai`
   - ICP Ledger: `ryjl3-tyaaa-aaaaa-aaaba-cai`
 
+## NFT Collection Interactions
+
+### Daku Motokos (erfen-7aaaa-aaaap-ahniq-cai)
+
+To check NFT ownership:
+```bash
+# Primary method - Returns full token metadata
+dfx canister --network ic call erfen-7aaaa-aaaap-ahniq-cai getTokens '(principal "<PRINCIPAL_ID>")'
+```
+
+The `getTokens` method returns comprehensive NFT metadata including:
+- Token IDs
+- NFT names (e.g., "Daku Motokos #2343")
+- Complete attribute sets (Background, Hands, Bodies, etc.)
+- Ownership verification
+
+Note: Other standard methods like `balance`, `tokens`, or `tokens_ext` are not supported by this collection. Always use `getTokens` for ownership verification.
+
+### GG Album Release (v6gck-vqaaa-aaaal-qi3sa-cai)
+
+To check NFT ownership:
+```bash
+# Primary method - Returns extended token information
+dfx canister --network ic call v6gck-vqaaa-aaaal-qi3sa-cai tokens_ext '(principal "<PRINCIPAL_ID>")'
+
+# Alternative method - Returns basic token IDs
+dfx canister --network ic call v6gck-vqaaa-aaaal-qi3sa-cai tokens '(principal "<PRINCIPAL_ID>")'
+```
+
+Response details:
+- `tokens_ext`: Returns detailed token metadata including ownership status and token-specific attributes
+- `tokens`: Returns a simplified list of token IDs owned by the principal
+
+Important Implementation Notes:
+1. **Daku Motokos**: Only supports the `getTokens` method. Attempts to use other standard methods (`balance`, `tokens`, `tokens_ext`) will fail.
+2. **GG Album Release**: Supports both `tokens` and `tokens_ext` methods, with `tokens_ext` providing more detailed information.
+
+For integration purposes, always use the primary recommended method for each collection:
+- Daku Motokos: `getTokens`
+- GG Album Release: `tokens_ext`
+
 ## Security Considerations
 
 - Payout canister must be funded with sufficient ICP

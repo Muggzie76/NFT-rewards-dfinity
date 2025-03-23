@@ -1,0 +1,6 @@
+service : {
+  getBalance: (principal) -> (nat) query;
+  getNFTCount: (principal) -> (nat) query;
+  updateBalance: (principal, nat) -> ();
+  updateNFTCount: (principal) -> (nat);
+}

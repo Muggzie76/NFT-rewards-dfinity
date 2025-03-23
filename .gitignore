@@ -22,3 +22,4 @@ build/
 # Build output
 *.wasm
 *.candid
+.qodo
