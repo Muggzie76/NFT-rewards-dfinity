@@ -3,14 +3,27 @@ import HashMap "mo:base/HashMap";
 import Nat "mo:base/Nat";
 import Iter "mo:base/Iter";
 import Time "mo:base/Time";
+import Debug "mo:base/Debug";
+import Text "mo:base/Text";
+import Error "mo:base/Error";
+import Nat32 "mo:base/Nat32";
 
 actor Wallet {
     // Types
     type TokenIndex = Nat;
+    type AccountIdentifier = Text;
+    type Result_1 = {
+        #ok : [TokenIndex];
+        #err : {
+            #InvalidToken : Text;
+            #Other : Text;
+        };
+    };
     
     // External canister IDs
     private let NFT_CANISTER_1 = "erfen-7aaaa-aaaap-ahniq-cai"; // Daku Motoko
     private let NFT_CANISTER_2 = "v6gck-vqaaa-aaaal-qi3sa-cai"; // GG Album Release
+    private let PAYOUT_CANISTER_ID = "zeqfj-qyaaa-aaaaf-qanua-cai";
     
     // Stable storage
     private stable var nftCountsEntries : [(Principal, Nat)] = [];
@@ -21,6 +34,11 @@ actor Wallet {
     // Runtime storage
     private var nftCounts = HashMap.HashMap<Principal, Nat>(0, Principal.equal, Principal.hash);
     private var balances = HashMap.HashMap<Principal, Nat>(0, Principal.equal, Principal.hash);
+    
+    // Helper function to convert Principal to AccountIdentifier
+    private func principalToAccountIdentifier(principal: Principal) : AccountIdentifier {
+        Principal.toText(principal)
+    };
     
     // Load stable storage on init
     private func loadStableStorage() {
@@ -64,27 +82,30 @@ actor Wallet {
             } else {
                 // GG Album Release interface
                 let canister = actor(canisterId) : actor {
-                    tokens : (Principal) -> async [Nat32];
+                    tokens : (AccountIdentifier) -> async Result_1;
                 };
-                let tokens = await canister.tokens(user);
-                return tokens.size();
+                
+                let accountId = principalToAccountIdentifier(user);
+                let result = await canister.tokens(accountId);
+                
+                switch (result) {
+                    case (#ok(tokens)) {
+                        return tokens.size();
+                    };
+                    case (#err(e)) {
+                        Debug.print("Error getting tokens: " # debug_show(e));
+                        return 0;
+                    };
+                };
             };
-        } catch (_) {
+        } catch (error) {
+            Debug.print("Error querying NFT count: " # Error.message(error));
             return 0;
         };
     };
     
     // Update NFT count for a user (with caching)
     public shared func updateNFTCount(user: Principal) : async Nat {
-        // Check if we need to update (5-minute cache)
-        let currentTime = Time.now();
-        if (currentTime - lastUpdateTime < UPDATE_INTERVAL) {
-            return switch (nftCounts.get(user)) {
-                case (?count) { count };
-                case null { 0 };
-            };
-        };
-        
         // Query both NFT canisters
         let nft1 = await queryNFTCount(user, NFT_CANISTER_1);
         let nft2 = await queryNFTCount(user, NFT_CANISTER_2);
@@ -106,7 +127,14 @@ actor Wallet {
     
     // Update balance (restricted to payout canister)
     public shared(msg) func updateBalance(user: Principal, amount: Nat) : async () {
-        assert(msg.caller == Principal.fromText("zeqfj-qyaaa-aaaaf-qanua-cai")); // Payout canister ID
+        let caller = msg.caller;
+        let expectedCaller = Principal.fromText(PAYOUT_CANISTER_ID);
+        
+        if (not Principal.equal(caller, expectedCaller)) {
+            Debug.print("Unauthorized caller: " # Principal.toText(caller));
+            Debug.print("Expected caller: " # PAYOUT_CANISTER_ID);
+            assert(false);
+        };
         
         let currentBalance = switch (balances.get(user)) {
             case (?balance) { balance };

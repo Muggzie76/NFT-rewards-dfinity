@@ -1,5 +1,7 @@
+type User = principal;
+
 service : {
-    register: () -> ();
-    processPayouts: () -> ();
-    heartbeat: () -> ();
+    "register": () -> ();
+    "processPayouts": () -> ();
+    "heartbeat": () -> ();
 } 

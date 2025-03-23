@@ -1,5 +1,9 @@
+type User = principal;
+type Balance = nat;
+type NFTCount = nat;
+
 type TransferArgs = record {
-    to: principal;
+    to: User;
     amount: record { e8s: nat64 };
     fee: record { e8s: nat64 };
     memo: nat64;
@@ -15,8 +19,8 @@ type TransferResult = variant {
 };
 
 service : {
-    getNFTCount: (principal) -> (nat) query;
-    getBalance: (principal) -> (nat) query;
-    updateNFTCount: (principal) -> (nat);
-    updateBalance: (principal, nat) -> ();
+    getBalance: (User) -> (Balance) query;
+    getNFTCount: (User) -> (NFTCount) query;
+    updateBalance: (User, Balance) -> ();
+    updateNFTCount: (User) -> (NFTCount);
 } 
