@@ -1,0 +1,36 @@
+{
+  "canisters": {
+    "wallet": {
+      "main": "src/wallet/main.mo",
+      "type": "motoko"
+    },
+    "payout": {
+      "main": "src/payout/main.mo",
+      "type": "motoko"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    },
+    "canisters": {
+      "ic": {
+        "remote": {
+          "id": {
+            "ic": "ryjl3-tyaaa-aaaaa-aaaba-cai"
+          }
+        }
+      }
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8000"
+    },
+    "ic": {
+      "providers": ["https://ic0.app"]
+    }
+  },
+  "version": 1
+} 
