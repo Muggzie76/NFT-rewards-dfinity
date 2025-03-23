@@ -35,6 +35,20 @@ actor Wallet {
     private var nftCounts = HashMap.HashMap<Principal, Nat>(0, Principal.equal, Principal.hash);
     private var balances = HashMap.HashMap<Principal, Nat>(0, Principal.equal, Principal.hash);
     
+    // Constants for batch processing
+    private let BATCH_SIZE : Nat = 100;
+    private let MAX_RETRIES : Nat = 3;
+    
+    // Types for batch processing
+    type BatchState = {
+        var processedCount : Nat;
+        var totalCount : Nat;
+        var lastProcessedIndex : Nat;
+        var isComplete : Bool;
+    };
+    
+    private var batchStates = HashMap.HashMap<Principal, BatchState>(0, Principal.equal, Principal.hash);
+    
     // Helper function to convert Principal to AccountIdentifier
     private func principalToAccountIdentifier(principal: Principal) : AccountIdentifier {
         Principal.toText(principal)
@@ -63,8 +77,8 @@ actor Wallet {
     // Initialize
     loadStableStorage();
     
-    // Query NFT count from a specific canister
-    private func queryNFTCount(user: Principal, canisterId: Text) : async Nat {
+    // Query NFT count from a specific canister with batching
+    private func queryNFTCountBatch(user: Principal, canisterId: Text, state: BatchState) : async Nat {
         try {
             if (canisterId == NFT_CANISTER_1) {
                 // Daku Motoko specific interface
@@ -80,7 +94,7 @@ actor Wallet {
                 };
                 return 0;
             } else {
-                // GG Album Release interface
+                // GG Album Release interface with batching
                 let canister = actor(canisterId) : actor {
                     tokens : (AccountIdentifier) -> async Result_1;
                 };
@@ -90,7 +104,13 @@ actor Wallet {
                 
                 switch (result) {
                     case (#ok(tokens)) {
-                        return tokens.size();
+                        let start = state.lastProcessedIndex;
+                        let end = Nat.min(start + BATCH_SIZE, tokens.size());
+                        state.processedCount += (end - start);
+                        state.lastProcessedIndex := end;
+                        state.isComplete := end >= tokens.size();
+                        state.totalCount := tokens.size();
+                        return state.totalCount;
                     };
                     case (#err(e)) {
                         Debug.print("Error getting tokens: " # debug_show(e));
@@ -104,17 +124,67 @@ actor Wallet {
         };
     };
     
-    // Update NFT count for a user (with caching)
+    // Update NFT count for a user with batching support
     public shared func updateNFTCount(user: Principal) : async Nat {
-        // Query both NFT canisters
-        let nft1 = await queryNFTCount(user, NFT_CANISTER_1);
-        let nft2 = await queryNFTCount(user, NFT_CANISTER_2);
+        var retryCount = 0;
+        var totalCount = 0;
         
-        let totalCount = nft1 + nft2;
+        // Initialize or get batch state
+        let state = switch (batchStates.get(user)) {
+            case (?existing) { existing };
+            case null {
+                let newState = {
+                    var processedCount = 0;
+                    var totalCount = 0;
+                    var lastProcessedIndex = 0;
+                    var isComplete = false;
+                };
+                batchStates.put(user, newState);
+                newState;
+            };
+        };
+        
+        // Process NFT Collection 1 (Daku Motoko)
+        let nft1 = await queryNFTCountBatch(user, NFT_CANISTER_1, state);
+        totalCount += nft1;
+        
+        // Process NFT Collection 2 (GG Album Release) in batches
+        while (not state.isComplete and retryCount < MAX_RETRIES) {
+            let nft2 = await queryNFTCountBatch(user, NFT_CANISTER_2, state);
+            if (state.isComplete) {
+                totalCount += nft2;
+            };
+            retryCount += 1;
+        };
+        
+        // Update cache
         nftCounts.put(user, totalCount);
         saveToStableStorage();
         
+        // Cleanup batch state if complete
+        if (state.isComplete) {
+            batchStates.delete(user);
+        };
+        
         totalCount;
+    };
+    
+    // Get NFT count with progress tracking
+    public query func getNFTCountWithProgress(user: Principal) : async {count: Nat; inProgress: Bool} {
+        let currentCount = switch (nftCounts.get(user)) {
+            case (?count) { count };
+            case null { 0 };
+        };
+        
+        let inProgress = switch (batchStates.get(user)) {
+            case (?state) { not state.isComplete };
+            case null { false };
+        };
+        
+        {
+            count = currentCount;
+            inProgress = inProgress;
+        }
     };
     
     // Get NFT count for a user
