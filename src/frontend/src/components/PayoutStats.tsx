@@ -1,133 +1,74 @@
 import React, { useEffect, useState } from 'react';
 import { Principal } from '@dfinity/principal';
-import { payout } from '../../../declarations/payout';
-import { useAuth } from '../contexts/AuthContext';
+import { ActorSubclass } from '@dfinity/agent';
+import type { _SERVICE } from 'declarations/payout/payout.did';
+
+interface PayoutStatsProps {
+  payoutActor: ActorSubclass<_SERVICE>;
+  userPrincipal: Principal;
+}
 
 interface Stats {
-    total_registered_users: bigint;
-    last_payout_time: bigint;
-    next_payout_time: bigint;
-    total_payouts_processed: bigint;
-    total_payout_amount: bigint;
-    failed_transfers: bigint;
-    is_processing: boolean;
+  totalStaked: bigint;
+  totalRewards: bigint;
+  userStaked: bigint;
+  userRewards: bigint;
 }
 
-interface UserStats {
-    nft_count: bigint;
-    last_payout_amount: bigint;
-    last_payout_time: bigint;
-    total_payouts_received: bigint;
-}
+const PayoutStats: React.FC<PayoutStatsProps> = ({ payoutActor, userPrincipal }) => {
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-const PayoutStats: React.FC = () => {
-    const { identity } = useAuth();
-    const [globalStats, setGlobalStats] = useState<Stats | null>(null);
-    const [userStats, setUserStats] = useState<UserStats | null>(null);
-    const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+        const [globalStats, userStats] = await Promise.all([
+          payoutActor.get_stats(),
+          payoutActor.get_user_stats(userPrincipal)
+        ]);
 
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const stats = await payout.get_stats();
-                setGlobalStats(stats);
-
-                if (identity) {
-                    const userStats = await payout.get_user_stats(identity.getPrincipal());
-                    setUserStats(userStats);
-                }
-            } catch (error) {
-                console.error('Error fetching stats:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchStats();
-        const interval = setInterval(fetchStats, 60000); // Update every minute
-        return () => clearInterval(interval);
-    }, [identity]);
-
-    if (loading) {
-        return <div>Loading stats...</div>;
-    }
-
-    const formatTime = (timestamp: bigint) => {
-        const date = new Date(Number(timestamp) / 1_000_000); // Convert from nanoseconds
-        return date.toLocaleString();
+        setStats({
+          totalStaked: globalStats.total_registered_users,
+          totalRewards: globalStats.total_payout_amount,
+          userStaked: userStats.nft_count,
+          userRewards: userStats.total_payouts_received
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch stats');
+      } finally {
+        setLoading(false);
+      }
     };
 
-    const formatICP = (amount: bigint) => {
-        return (Number(amount) / 100_000_000).toFixed(8) + ' ICP';
-    };
+    fetchStats();
+  }, [payoutActor, userPrincipal]);
 
-    return (
-        <div className="payout-stats">
-            <h2>Payout Statistics</h2>
-            
-            {globalStats && (
-                <div className="global-stats">
-                    <h3>Global Statistics</h3>
-                    <div className="stats-grid">
-                        <div className="stat-item">
-                            <label>Total Registered Users:</label>
-                            <span>{globalStats.total_registered_users.toString()}</span>
-                        </div>
-                        <div className="stat-item">
-                            <label>Last Payout:</label>
-                            <span>{formatTime(globalStats.last_payout_time)}</span>
-                        </div>
-                        <div className="stat-item">
-                            <label>Next Payout:</label>
-                            <span>{formatTime(globalStats.next_payout_time)}</span>
-                        </div>
-                        <div className="stat-item">
-                            <label>Total Payouts Processed:</label>
-                            <span>{globalStats.total_payouts_processed.toString()}</span>
-                        </div>
-                        <div className="stat-item">
-                            <label>Total Payout Amount:</label>
-                            <span>{formatICP(globalStats.total_payout_amount)}</span>
-                        </div>
-                        <div className="stat-item">
-                            <label>Failed Transfers:</label>
-                            <span>{globalStats.failed_transfers.toString()}</span>
-                        </div>
-                        <div className="stat-item">
-                            <label>Status:</label>
-                            <span className={globalStats.is_processing ? 'processing' : 'idle'}>
-                                {globalStats.is_processing ? 'Processing' : 'Idle'}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            )}
+  if (loading) return <div>Loading stats...</div>;
+  if (error) return <div>Error: {error}</div>;
+  if (!stats) return <div>No stats available</div>;
 
-            {userStats && (
-                <div className="user-stats">
-                    <h3>Your Statistics</h3>
-                    <div className="stats-grid">
-                        <div className="stat-item">
-                            <label>NFT Count:</label>
-                            <span>{userStats.nft_count.toString()}</span>
-                        </div>
-                        <div className="stat-item">
-                            <label>Last Payout Amount:</label>
-                            <span>{formatICP(userStats.last_payout_amount)}</span>
-                        </div>
-                        <div className="stat-item">
-                            <label>Last Payout Time:</label>
-                            <span>{formatTime(userStats.last_payout_time)}</span>
-                        </div>
-                        <div className="stat-item">
-                            <label>Total Payouts Received:</label>
-                            <span>{userStats.total_payouts_received.toString()}</span>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
+  return (
+    <div className="stats-grid">
+      <div className="stat-card">
+        <h3>Total Staked</h3>
+        <p>{Number(stats.totalStaked).toLocaleString()} ICP</p>
+      </div>
+      <div className="stat-card">
+        <h3>Total Rewards</h3>
+        <p>{Number(stats.totalRewards).toLocaleString()} ICP</p>
+      </div>
+      <div className="stat-card">
+        <h3>Your Staked</h3>
+        <p>{Number(stats.userStaked).toLocaleString()} ICP</p>
+      </div>
+      <div className="stat-card">
+        <h3>Your Rewards</h3>
+        <p>{Number(stats.userRewards).toLocaleString()} ICP</p>
+      </div>
+    </div>
+  );
 };
 
 export default PayoutStats; 

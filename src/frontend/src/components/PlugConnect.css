@@ -1,0 +1,42 @@
+.plug-connect {
+  width: 100%;
+}
+
+.connect-button,
+.disconnect-button {
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+}
+
+.connect-button {
+  background-color: #4F46E5;
+  color: white;
+}
+
+.connect-button:hover {
+  background-color: #4338CA;
+}
+
+.connect-button:disabled {
+  background-color: #6B7280;
+  cursor: not-allowed;
+}
+
+.disconnect-button {
+  background-color: #EF4444;
+  color: white;
+}
+
+.disconnect-button:hover {
+  background-color: #DC2626;
+} 

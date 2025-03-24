@@ -9,6 +9,16 @@
       "main": "src/payout/main.mo",
       "type": "motoko",
       "candid": "src/payout/payout.did"
+    },
+    "frontend": {
+      "frontend": {
+        "entrypoint": "src/frontend-experimental/src/index.jsx"
+      },
+      "source": ["src/frontend-experimental/dist/"],
+      "type": "assets",
+      "canister_id": {
+        "ic": "zksib-liaaa-aaaaf-qanva-cai"
+      }
     }
   },
   "defaults": {
@@ -31,7 +41,8 @@
       "bind": "127.0.0.1:8000"
     },
     "ic": {
-      "providers": ["https://icp-api.io"]
+      "providers": ["https://ic0.app"],
+      "type": "persistent"
     }
   },
   "version": 1,

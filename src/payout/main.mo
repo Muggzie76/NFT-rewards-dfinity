@@ -53,15 +53,15 @@ actor Payout {
 
     // Constants
     private let TRANSFER_FEE : Nat = 10_000;
-    private let MIN_PROCESS_INTERVAL = 60_000_000_000;
+    private let _MIN_PROCESS_INTERVAL = 60_000_000_000;
     private let STORAGE_UPDATE_INTERVAL : Int = 3600_000_000_000;
     private let PAYOUT_INTERVAL : Int = 432_000_000_000_000;
     private let NFT_VALUE : Nat = 1_000;
     private let APY_PERCENT : Nat = 10;
     private let PAYOUTS_PER_YEAR : Nat = 73;
-    private let MAX_BATCH_SIZE = 100;
+    private let _MAX_BATCH_SIZE = 100;
     private let MAX_RETRIES = 3;
-    private let RETRY_DELAY = 1_000_000_000;
+    private let _RETRY_DELAY = 1_000_000_000;
     private let CACHE_DURATION = 3600_000_000_000; // 1 hour cache duration
     
     // Create actors
@@ -78,7 +78,7 @@ actor Payout {
     // Stable storage
     private stable var registeredUsersEntries : [(Principal, Bool)] = [];
     private stable var lastPayoutTime : Int = 0;
-    private stable var lastProcessedIndex : Nat = 0;
+    private stable var _lastProcessedIndex : Nat = 0;
     private stable var lastStorageUpdateTime : Int = 0;
     private stable var statsEntries : [(Principal, UserStats)] = [];
     
@@ -92,7 +92,7 @@ actor Payout {
     private var totalPayoutAmount : Nat64 = 0;
     private var failedTransfers : Nat64 = 0;
     private var nextScheduledPayout : Int = 0;
-    private var payoutTimerId : Nat = 0;
+    private var _payoutTimerId : Nat = 0;
     
     // Load stable storage
     private func loadStableStorage() {
@@ -227,7 +227,7 @@ actor Payout {
                     } else {
                         success := true; // No NFTs, skip
                     };
-                } catch (e) {
+                } catch (_e) {
                     retryCount += 1;
                     if (retryCount < MAX_RETRIES) {
                         await async { };  // Minimal delay between retries
