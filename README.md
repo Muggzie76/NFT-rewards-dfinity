@@ -4,6 +4,14 @@ A decentralized application on the Internet Computer that distributes ICP tokens
 
 ## Recent Updates
 
+### April 2024
+- **Major Performance Optimizations**
+  - Reduced cycle consumption in payout canister
+  - Implemented NFT count caching
+  - Added dynamic batch processing
+  - Optimized storage operations
+  - Enhanced monitoring capabilities
+
 ### March 2024
 - Upgraded wallet canister to new ID: `rce3q-iaaaa-aaaap-qpyfa-cai`
 - Added comprehensive test suite for wallet functionality
@@ -18,6 +26,9 @@ A decentralized application on the Internet Computer that distributes ICP tokens
 - 10% APY on NFT holdings
 - Automatic payout distribution via ICP ledger
 - Stable storage for user data and balances
+- NFT count caching for improved performance
+- Dynamic batch processing for optimal cycle usage
+- Performance monitoring and cycle tracking
 
 ## Prerequisites
 
@@ -39,7 +50,7 @@ dfx deploy
 
 3. Fund the payout canister with ICP:
 ```bash
-dfx ledger transfer --amount 1.0 <PAYOUT_CANISTER_ID>
+dfx ledger transfer --amount 1.0 zeqfj-qyaaa-aaaaf-qanua-cai
 ```
 
 ## Usage
@@ -59,10 +70,48 @@ dfx canister call wallet getNFTCount '(<YOUR_PRINCIPAL>)'
 dfx canister call wallet getBalance '(<YOUR_PRINCIPAL>)'
 ```
 
-4. Trigger manual payout (admin only):
+4. View payout statistics:
 ```bash
-dfx canister call payout processPayouts
+dfx canister call payout get_stats
 ```
+
+## Performance Monitoring
+
+The system now includes comprehensive performance monitoring:
+
+1. **Cycle Usage Tracking**
+   - Monitors cycle consumption per batch
+   - Alerts on high cycle usage
+   - Tracks failed operations
+
+2. **Caching System**
+   - NFT counts cached for 1 hour
+   - Reduces external canister calls
+   - Optimizes cycle usage
+
+3. **Batch Processing**
+   - Dynamic batch sizing based on user count
+   - Optimized storage operations
+   - Efficient retry mechanisms
+
+## Architecture
+
+- **Wallet Canister**: Tracks NFT ownership and user balances (`rce3q-iaaaa-aaaap-qpyfa-cai`)
+- **Payout Canister**: Manages user registration and distributes ICP tokens (`zeqfj-qyaaa-aaaaf-qanua-cai`)
+  - Implements efficient time-based scheduling
+  - Uses caching for NFT counts
+  - Features dynamic batch processing
+  - Includes performance monitoring
+
+## Troubleshooting
+
+If you encounter high cycle consumption:
+1. Check the system logs for cycle usage alerts
+2. Monitor batch processing performance
+3. Verify NFT count cache effectiveness
+4. Review storage operation frequency
+
+For assistance, please check the logs or contact support.
 
 ## Mainnet Deployment
 
