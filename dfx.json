@@ -1,9 +1,9 @@
 {
   "canisters": {
-    "wallet": {
-      "main": "src/wallet/main.mo",
-      "type": "motoko",
-      "candid": "src/wallet/wallet.did"
+    "wallet_rust": {
+      "type": "rust",
+      "package": "wallet_rust",
+      "candid": "src/wallet_rust/wallet_rust.did"
     },
     "payout": {
       "main": "src/payout/main.mo",

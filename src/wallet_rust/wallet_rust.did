@@ -1,0 +1,21 @@
+type NFTProgress = record {
+    count: nat64;
+    in_progress: bool;
+    last_updated: nat64;
+};
+
+type HolderInfo = record {
+    daku_count: nat64;
+    gg_count: nat64;
+    total_count: nat64;
+    last_updated: nat64;
+};
+
+service : {
+    "update_balance": (principal, nat64) -> (nat64);
+    "get_balance": (principal) -> (nat64) query;
+    "update_all_holders": () -> (nat64);
+    "get_all_holders": () -> (vec record { principal; HolderInfo }) query;
+    "get_nft_count": (principal) -> (NFTProgress) query;
+    "get_all_nft_counts": () -> (vec record { principal; NFTProgress }) query;
+} 
