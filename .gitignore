@@ -23,3 +23,16 @@ build/
 *.wasm
 *.candid
 .qodo
+
+# Rust
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# Node
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+Thumbs.db

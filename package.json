@@ -9,10 +9,13 @@
   },
   "dependencies": {
     "@dfinity/agent": "^0.20.2",
+    "@dfinity/auth-client": "^2.3.0",
     "@dfinity/candid": "^0.20.2",
     "@dfinity/principal": "^0.20.2"
   },
   "devDependencies": {
+    "@types/react": "^19.0.12",
+    "@types/react-router-dom": "^5.3.3",
     "mocha": "^10.3.0"
   }
-} 
+}

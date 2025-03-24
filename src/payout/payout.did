@@ -1,7 +1,27 @@
 type User = principal;
 
+type Stats = record {
+    total_registered_users: nat64;
+    last_payout_time: int;
+    next_payout_time: int;
+    total_payouts_processed: nat64;
+    total_payout_amount: nat64;
+    failed_transfers: nat64;
+    is_processing: bool;
+};
+
+type UserStats = record {
+    nft_count: nat64;
+    last_payout_amount: nat64;
+    last_payout_time: int;
+    total_payouts_received: nat64;
+};
+
 service : {
     "register": () -> ();
     "processPayouts": () -> ();
     "heartbeat": () -> ();
+    "get_stats": () -> (Stats) query;
+    "get_user_stats": (principal) -> (UserStats) query;
+    "get_all_user_stats": () -> (vec record { principal; UserStats }) query;
 } 

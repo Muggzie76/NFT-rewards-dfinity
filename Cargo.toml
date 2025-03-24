@@ -1,0 +1,11 @@
+[workspace]
+members = [
+    "src/wallet_rust"
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+
+[workspace.metadata]
+resolver = "2" 
