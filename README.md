@@ -2,6 +2,15 @@
 
 A decentralized application on the Internet Computer that distributes ICP tokens to users holding NFTs from specific collections.
 
+## Recent Updates
+
+### March 2024
+- Upgraded wallet canister to new ID: `rce3q-iaaaa-aaaap-qpyfa-cai`
+- Added comprehensive test suite for wallet functionality
+- Implemented new frontend components for better user experience
+- Enhanced error handling and type safety in payout calculations
+- Added batch processing optimizations for better performance
+
 ## Features
 
 - Tracks NFT ownership from two collections
@@ -69,7 +78,7 @@ dfx ledger transfer --network ic --amount 1.0 <PAYOUT_CANISTER_ID>
 
 ## Architecture
 
-- **Wallet Canister**: Tracks NFT ownership and user balances
+- **Wallet Canister**: Tracks NFT ownership and user balances (`rce3q-iaaaa-aaaap-qpyfa-cai`)
 - **Payout Canister**: Manages user registration and distributes ICP tokens
 - **External Canisters**:
   - NFT Collection 1: `qcg3w-tyaaa-aaaaa-aaaba-cai`
