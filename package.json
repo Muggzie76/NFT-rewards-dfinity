@@ -1,0 +1,18 @@
+{
+  "name": "world-8-staking-dapp",
+  "version": "1.0.0",
+  "description": "NFT Staking DApp on Internet Computer",
+  "type": "module",
+  "main": "test/wallet_rust_test.js",
+  "scripts": {
+    "test": "mocha test/wallet_rust_test.js"
+  },
+  "dependencies": {
+    "@dfinity/agent": "^0.20.2",
+    "@dfinity/candid": "^0.20.2",
+    "@dfinity/principal": "^0.20.2"
+  },
+  "devDependencies": {
+    "mocha": "^10.3.0"
+  }
+} 
