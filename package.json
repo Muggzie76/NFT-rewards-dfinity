@@ -1,7 +1,7 @@
 {
-  "name": "world-8-staking-dapp",
+  "name": "world-8-rewards-dapp",
   "version": "1.0.0",
-  "description": "NFT Staking DApp on Internet Computer",
+  "description": "NFT Rewards DApp on Internet Computer",
   "type": "module",
   "main": "test/wallet_rust_test.js",
   "scripts": {

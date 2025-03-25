@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>World 8 NFT Staking Dashboard</title>
+    <title>World 8 NFT Rewards Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -285,12 +285,12 @@
 <body>
     <div class="dashboard-container">
         <div class="header">
-            <h1>World 8 Staking Dashboard</h1>
+            <h1>World 8 Rewards Dashboard</h1>
             <div id="current-time"></div>
         </div>
 
         <div class="panel" style="grid-column: 1; grid-row: 2;">
-            <h2>Staking Overview</h2>
+            <h2>Rewards Overview</h2>
             <div class="stats-counter" style="position: static; transform: none;">
                 4,109 NFTs
             </div>
@@ -306,7 +306,7 @@
         </div>
 
         <div class="center-display">
-            <div class="welcome-text">Welcome to WORLD 8 Staking</div>
+            <div class="welcome-text">Welcome to WORLD 8 Rewards</div>
             <div class="countdown-timer">
                 <div class="countdown-label">Next Payout In</div>
                 <div class="countdown-value">
@@ -332,14 +332,14 @@
         </div>
 
         <div class="panel" style="grid-column: 3; grid-row: 2;">
-            <h2>Staking History</h2>
+            <h2>Rewards History</h2>
             <div style="position: relative; height: 200px;">
                 <canvas id="history-chart"></canvas>
             </div>
         </div>
 
         <div class="panel" style="grid-column: 1; grid-row: 3;">
-            <h2>Top Stakers</h2>
+            <h2>Top Rewards Holders</h2>
             <table>
                 <thead>
                     <tr>
@@ -419,7 +419,7 @@
         </div>
 
         <div class="footer">
-            Copyright <a href="http://www.world8.io" target="_blank" rel="noopener noreferrer">WORLD8.io</a>. Created by Muggzie
+            Copyright © WORLD8.IO - Made By Muggzie
         </div>
     </div>
 
@@ -589,19 +589,19 @@
             }
         }
         
-        // Initialize staking history chart
+        // Initialize rewards history chart
         function initHistoryChart() {
             const ctx = document.getElementById('history-chart').getContext('2d');
             
-            const stakingHistory = [{"month": "Jan 2025", "value": 2876}, {"month": "Feb 2025", "value": 3122}, {"month": "Mar 2025", "value": 3369}, {"month": "Apr 2025", "value": 3615}, {"month": "May 2025", "value": 3862}, {"month": "Jun 2025", "value": 4109}];
+            const rewardsHistory = [{"month": "Jan 2025", "value": 2876}, {"month": "Feb 2025", "value": 3122}, {"month": "Mar 2025", "value": 3369}, {"month": "Apr 2025", "value": 3615}, {"month": "May 2025", "value": 3862}, {"month": "Jun 2025", "value": 4109}];
             
             new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: stakingHistory.map(item => item.month),
+                    labels: rewardsHistory.map(item => item.month),
                     datasets: [{
-                        label: 'Total Staked',
-                        data: stakingHistory.map(item => item.value),
+                        label: 'Total Rewards',
+                        data: rewardsHistory.map(item => item.value),
                         borderColor: '#00ffff',
                         backgroundColor: 'rgba(0, 255, 255, 0.1)',
                         tension: 0.3,

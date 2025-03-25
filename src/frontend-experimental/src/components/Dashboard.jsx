@@ -221,7 +221,7 @@ const Dashboard = () => {
     isProcessing: false
   });
 
-  const [stakingHistory, setStakingHistory] = useState([]);
+  const [rewardsHistory, setRewardsHistory] = useState([]);
   const [topStakers, setTopStakers] = useState([]);
   const [distributionData, setDistributionData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -230,7 +230,7 @@ const Dashboard = () => {
   const [countdown, setCountdown] = useState({ hours: '00', minutes: '00' });
 
   useEffect(() => {
-    const fetchStakingData = async () => {
+    const fetchRewardsData = async () => {
       try {
         setLoading(true);
         const payoutActor = createPayoutActor();
@@ -269,9 +269,9 @@ const Dashboard = () => {
           }));
         setTopStakers(sortedStakers);
 
-        // Generate staking history
-        const history = generateStakingHistory(userStatsArray);
-        setStakingHistory(history);
+        // Generate rewards history
+        const history = generateRewardsHistory(userStatsArray);
+        setRewardsHistory(history);
 
         setStats({
           ...formattedStats,
@@ -281,8 +281,8 @@ const Dashboard = () => {
 
         setError(null);
       } catch (err) {
-        console.error('Error fetching staking data:', err);
-        setError('Failed to fetch staking data. Please try again later.');
+        console.error('Error fetching rewards data:', err);
+        setError('Failed to fetch rewards data. Please try again later.');
       } finally {
         setLoading(false);
       }
@@ -327,7 +327,7 @@ const Dashboard = () => {
     };
 
     // Initial fetch and countdown setup
-    fetchStakingData();
+    fetchRewardsData();
     const timeUntilNextUpdate = calculateNextUpdate();
     updateCountdown();
 
@@ -336,7 +336,7 @@ const Dashboard = () => {
 
     // Schedule next data fetch
     const fetchTimeout = setTimeout(() => {
-      fetchStakingData();
+      fetchRewardsData();
       calculateNextUpdate();
     }, timeUntilNextUpdate);
 
@@ -366,7 +366,7 @@ const Dashboard = () => {
     });
   };
 
-  const generateStakingHistory = (userStats) => {
+  const generateRewardsHistory = (userStats) => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
     const currentMonth = new Date().getMonth();
     
@@ -384,13 +384,13 @@ const Dashboard = () => {
     <DashboardContainer>
       <Header>
         <div>
-          <h1>World 8 Staking Dashboard</h1>
+          <h1>World 8 Rewards Dashboard</h1>
         </div>
         <div>{new Date().toLocaleString()}</div>
       </Header>
 
       <Panel>
-        <h2>Staking Overview</h2>
+        <h2>Rewards Overview</h2>
         <StatsCounter style={{ position: 'static', transform: 'none' }}>
           {stats.totalStaked.toLocaleString()} NFTs
         </StatsCounter>
@@ -405,7 +405,7 @@ const Dashboard = () => {
       </Panel>
 
       <CenterDisplay>
-        <WelcomeText>Welcome to WORLD 8 Staking</WelcomeText>
+        <WelcomeText>Welcome to WORLD 8 Rewards</WelcomeText>
         <CountdownTimer>
           <div className="countdown-label">Next Update In</div>
           <div className="countdown-value">
@@ -420,8 +420,8 @@ const Dashboard = () => {
       </CenterDisplay>
 
       <Panel>
-        <h2>Staking History</h2>
-        <LineChart width={300} height={200} data={stakingHistory}>
+        <h2>Rewards History</h2>
+        <LineChart width={300} height={200} data={rewardsHistory}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
           <XAxis dataKey="month" stroke="#00ffff" />
           <YAxis stroke="#00ffff" />
