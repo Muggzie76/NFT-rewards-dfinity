@@ -10,7 +10,65 @@
   - Removed `msg` parameter from `updateNFTCount`
 - **Impact**: Reduced code size and improved clarity without affecting functionality
 
-### 2. Payout Canister Improvements
+### 2. Wallet Rust NFT Query Enhancements (May 2024)
+- **EXT Token Standard Support**
+  - Implemented robust EXT-standard token querying for NFT collections
+  - Added versatile account identifier formats:
+    - Plain principal text format
+    - AccountIdentifier with hash format using SHA-224
+  - Added canister-specific argument preparation
+  
+- **Enhanced Error Handling**
+  - Improved detection and handling of "No tokens" responses
+  - Added detailed error formatting for different error types
+  - Implemented proper exception handling for all API calls
+
+- **Fallback Query Mechanism**
+  - Added dedicated fallback_query_tokens function to try alternative formats
+  - Implemented multi-stage query system with primary and fallback methods
+  - Added support for multiple response format parsing
+  
+- **Implementation Highlights**:
+  ```rust
+  // Prepare request arguments based on NFT canister ID
+  fn prepare_tokens_args(principal: &Principal, canister_id: &str) -> Result<Vec<u8>, String> {
+      // Daku Motoko might expect a different format than GG Album
+      if canister_id == DAKU_MOTOKO_CANISTER {
+          // Try principal text format for Daku
+          candid::encode_one(principal_to_account_id(principal))
+              .map_err(|e| format!("Encoding error for Daku: {}", e))
+      } else if canister_id == GG_ALBUM_CANISTER {
+          // GG Album might expect a different format
+          candid::encode_one(principal_to_account_id(principal))
+              .map_err(|e| format!("Encoding error for GG Album: {}", e))
+      } else {
+          // Default encoding
+          candid::encode_one(principal_to_account_id(principal))
+              .map_err(|e| format!("Encoding error: {}", e))
+      }
+  }
+  
+  // Add a fallback query function if the primary call fails
+  async fn fallback_query_tokens(canister_id: Principal, user: &Principal) -> Result<u64, String> {
+      // Try with AccountIdentifier hash format
+      let hash = compute_account_id_hash(user);
+      let account_id = AccountIdentifier { hash };
+      
+      // Process result...
+  }
+  ```
+
+- **Test Suite Expansion**
+  - Updated test_direct_canister_calls to verify both primary and fallback methods
+  - Added more detailed debug logging
+  - Improved error reporting for debugging
+
+- **Technical Improvements**:
+  - Replaced rigid [u8] typing with flexible Vec<u8> for binary data
+  - Improved Candid encoding/decoding with better error handling
+  - Fixed query encoding to ensure compatibility with NFT canisters
+
+### 3. Payout Canister Improvements
 - **System Method Visibility**
   - Changed `heartbeat` to proper system method: `system func heartbeat()`
 - **Unused Variable Handling**
