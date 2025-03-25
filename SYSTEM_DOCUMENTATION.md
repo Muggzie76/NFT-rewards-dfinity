@@ -493,3 +493,87 @@ The EXT standard implementation is modular and can be extended to support additi
 3. Updating the token querying logic to handle any canister-specific variations
 
 The system uses a caching mechanism (default 5 minutes) to reduce the load on external NFT canisters while ensuring reasonably fresh data. 
+
+# System Documentation
+
+## Payout Canister Configuration
+
+### Token Economics
+- NFT Value: 2000 tokens per NFT
+- APY: 10% per year
+- Payout Interval: Every 5 days (73 payouts per year)
+- Minimum Payout Amount: 0.01 tokens
+- Minimum Balance Threshold: 1 token
+
+### Canister IDs
+- Mainnet Payout Canister: `zeqfj-qyaaa-aaaaf-qanua-cai`
+- Mainnet Wallet Canister: `zeqfj-qyaaa-aaaaf-qanua-cai`
+- Mainnet Zombie Token: `zeqfj-qyaaa-aaaaf-qanua-cai`
+
+### Admin Controls
+- Emergency Stop Function
+- Pause/Resume Payouts
+- APY Adjustment
+- Admin Principal Management
+
+### Safety Features
+- Minimum Balance Threshold: 1 token
+- Transfer Fee: 0.1 tokens
+- Maximum Retries: 3
+- Concurrent Processing Prevention
+- Enhanced Mainnet Logging
+
+### Payout Calculation
+1. Total Value = NFT Count × 2000 tokens
+2. Annual Payout = Total Value × 10% APY
+3. Payout Per Period = Annual Payout ÷ 73 (payouts per year)
+
+### Example Calculation
+For 1 NFT:
+- Total Value: 2000 tokens
+- Annual Payout: 200 tokens
+- Payout Per Period: 2.739726 tokens
+
+## Recent Updates (March 2024)
+1. Updated mainnet canister IDs
+2. Implemented enhanced logging for mainnet monitoring
+3. Added admin controls and safety features
+4. Adjusted token economics for 5-day payout intervals
+5. Added balance checks and minimum thresholds
+
+## Deployment Instructions
+1. Ensure sufficient ICP balance for deployment
+2. Deploy to mainnet using:
+   ```bash
+   dfx deploy --network ic
+   ```
+3. Fund the payout canister with:
+   - Minimum 1 token for operations
+   - Additional tokens for payouts
+4. Set admin principal using:
+   ```bash
+   dfx canister --network ic call zeqfj-qyaaa-aaaaf-qanua-cai setAdmin '(principal "YOUR_PRINCIPAL")'
+   ```
+
+## Monitoring
+- Use `get_stats()` to monitor:
+  - Last payout time
+  - Next scheduled payout
+  - Total payouts processed
+  - Total payout amount
+  - Failed transfers
+  - Processing status
+
+## Emergency Procedures
+1. Emergency Stop:
+   ```bash
+   dfx canister --network ic call zeqfj-qyaaa-aaaaf-qanua-cai emergencyStop
+   ```
+2. Pause Payouts:
+   ```bash
+   dfx canister --network ic call zeqfj-qyaaa-aaaaf-qanua-cai pause
+   ```
+3. Resume Payouts:
+   ```bash
+   dfx canister --network ic call zeqfj-qyaaa-aaaaf-qanua-cai resume
+   ``` 

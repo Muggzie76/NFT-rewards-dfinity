@@ -3,12 +3,42 @@
     "wallet_rust": {
       "type": "rust",
       "package": "wallet_rust",
-      "candid": "src/wallet_rust/wallet_rust.did"
+      "candid": "src/wallet_rust/wallet_rust.did",
+      "canister_id": {
+        "ic": "zeqfj-qyaaa-aaaaf-qanua-cai"
+      }
     },
     "payout": {
       "main": "src/payout/main.mo",
       "type": "motoko",
-      "candid": "src/payout/payout.did"
+      "candid": "src/payout/payout.did",
+      "canister_id": {
+        "ic": "zeqfj-qyaaa-aaaaf-qanua-cai"
+      }
+    },
+    "mock_wallet": {
+      "main": "src/mock_wallet/main.mo",
+      "type": "motoko",
+      "candid": "src/mock_wallet/mock_wallet.did",
+      "canister_id": {
+        "ic": "zeqfj-qyaaa-aaaaf-qanua-cai"
+      }
+    },
+    "icrc1_token": {
+      "main": "src/icrc1_token/main.mo",
+      "type": "motoko",
+      "candid": "src/icrc1_token/icrc1_token.did",
+      "canister_id": {
+        "ic": "zeqfj-qyaaa-aaaaf-qanua-cai"
+      }
+    },
+    "test_token": {
+      "main": "src/test_token/main.mo",
+      "type": "motoko",
+      "candid": "src/test_token/test_token.did",
+      "canister_id": {
+        "ic": "zeqfj-qyaaa-aaaaf-qanua-cai"
+      }
     },
     "frontend": {
       "frontend": {

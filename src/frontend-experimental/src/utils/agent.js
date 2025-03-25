@@ -1,10 +1,14 @@
 import { Actor, HttpAgent } from "@dfinity/agent";
 import { Principal } from "@dfinity/principal";
+import { mockPayoutActor, mockWalletActor } from "./mockData";
 
 const PAYOUT_CANISTER_ID = process.env.REACT_APP_PAYOUT_CANISTER_ID || "zeqfj-qyaaa-aaaaf-qanua-cai";
 const WALLET_CANISTER_ID = process.env.REACT_APP_WALLET_CANISTER_ID || "rce3q-iaaaa-aaaap-qpyfa-cai";
 const IC_HOST = process.env.REACT_APP_IC_HOST || "https://ic0.app";
 const API_REQUEST_TIMEOUT = parseInt(process.env.REACT_APP_API_REQUEST_TIMEOUT) || 30000;
+
+// Flag to use mock data instead of actual canisters
+const USE_MOCK_DATA = true;
 
 // Create an agent for IC mainnet with request throttling
 const createAgent = () => {
@@ -88,6 +92,10 @@ const walletInterface = ({ IDL }) => {
 
 // Create actors with error handling
 export const createPayoutActor = () => {
+  if (USE_MOCK_DATA) {
+    return mockPayoutActor();
+  }
+
   const actor = Actor.createActor(payoutInterface, {
     agent,
     canisterId: PAYOUT_CANISTER_ID,
@@ -103,6 +111,10 @@ export const createPayoutActor = () => {
 };
 
 export const createWalletActor = () => {
+  if (USE_MOCK_DATA) {
+    return mockWalletActor();
+  }
+
   const actor = Actor.createActor(walletInterface, {
     agent,
     canisterId: WALLET_CANISTER_ID,
