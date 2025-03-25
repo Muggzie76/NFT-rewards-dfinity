@@ -10,7 +10,98 @@
   - Removed `msg` parameter from `updateNFTCount`
 - **Impact**: Reduced code size and improved clarity without affecting functionality
 
-### 2. Wallet Rust NFT Query Enhancements (May 2024)
+### 2. NFT Registry Interface Implementation (May 2024)
+- **Daku NFT Registry Integration**
+  - Implemented robust registry querying for Daku NFT collection
+  - Added support for candid tuple return types: `(Vec<(TokenIndex, AccountId)>,)`
+  - Correctly handling getRegistry function with no arguments
+  - Added proper type definitions: TokenIndex (u32) and AccountId (String)
+
+- **Enhanced Error Handling**
+  - Multi-stage fallback system for maximum compatibility
+  - Raw bytes decoding as last resort option
+  - Multiple interface attempts to ensure successful data retrieval
+
+- **Interface Implementation Highlights**:
+  ```rust
+  // Primary function to get Daku registry records
+  pub async fn get_registry_daku_records(
+      canister_id: Principal,
+  ) -> Result<Vec<DakuRegistryRecord>, (RejectionCode, String)> {
+      get_registry_daku_records_aux(canister_id).await
+  }
+
+  // Helper function to handle different encoding attempts
+  async fn get_registry_daku_records_aux(
+      canister_id: Principal,
+  ) -> Result<Vec<DakuRegistryRecord>, (RejectionCode, String)> {
+      // Try the correct interface, matching exactly the Candid declared interface
+      match ic_cdk::api::call::call::<(), (Vec<(TokenIndex, AccountId)>,)>(
+          canister_id,
+          "getRegistry",
+          ()
+      ).await {
+          Ok((records,)) => {
+              // Convert tuples to our DakuRegistryRecord struct
+              let daku_records = records.into_iter()
+                  .map(|(index, owner)| {
+                      DakuRegistryRecord {
+                          index,
+                          owner,
+                      }
+                  })
+                  .collect();
+              Ok(daku_records)
+          },
+          Err(err) => {
+              // If this fails, try to decode the raw response
+              match get_registry_raw(canister_id).await {
+                  Ok(bytes) => {
+                      // Try to decode as the exact expected format
+                      if let Ok((result,)) = candid::decode_one::<(Vec<(TokenIndex, AccountId)>,)>(&bytes) {
+                          let daku_records = result.into_iter()
+                              .map(|(index, owner)| {
+                                  DakuRegistryRecord {
+                                      index,
+                                      owner,
+                                  }
+                              })
+                              .collect();
+                          return Ok(daku_records);
+                      }
+                      
+                      // If all decoding attempts fail, return the original error
+                      Err(err)
+                  },
+                  Err(_) => Err(err),
+              }
+          }
+      }
+  }
+  ```
+
+- **Registry Data Structure**
+  ```rust
+  // Define a new structure specifically for the Daku registry format based on the Candid definition
+  #[derive(candid::CandidType, candid::Deserialize, Debug, Clone)]
+  pub struct DakuRegistryRecord {
+      pub index: TokenIndex,
+      pub owner: AccountId,
+  }
+
+  // Define TokenIndex and AccountId as per Candid definition
+  pub type TokenIndex = u32;
+  pub type AccountId = String;
+  ```
+
+- **Multiple Access Methods**
+  - Direct registry record retrieval
+  - Token index vector retrieval
+  - Token-to-owner mapping
+  - Registry entry tuples
+  - Raw byte access for custom decoding
+
+### 3. Wallet Rust NFT Query Enhancements (May 2024)
 - **EXT Token Standard Support**
   - Implemented robust EXT-standard token querying for NFT collections
   - Added versatile account identifier formats:
@@ -68,7 +159,7 @@
   - Improved Candid encoding/decoding with better error handling
   - Fixed query encoding to ensure compatibility with NFT canisters
 
-### 3. Payout Canister Improvements
+### 4. Payout Canister Improvements
 - **System Method Visibility**
   - Changed `heartbeat` to proper system method: `system func heartbeat()`
 - **Unused Variable Handling**
