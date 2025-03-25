@@ -17,10 +17,17 @@
   - Correctly handling getRegistry function with no arguments
   - Added proper type definitions: TokenIndex (u32) and AccountId (String)
 
+- **GG Album NFT Registry Integration**
+  - Added dedicated interface for GG Album collection (canister ID: v2ekv-yyaaa-aaaag-qjw2q-cai)
+  - Implemented matching registry data structures to align with Candid interface
+  - Enhanced query functions to support GG Album's specific data format
+  - Added specialized functions for extracting token ownership information
+
 - **Enhanced Error Handling**
   - Multi-stage fallback system for maximum compatibility
   - Raw bytes decoding as last resort option
   - Multiple interface attempts to ensure successful data retrieval
+  - Collection-specific query optimization based on known interface formats
 
 - **Interface Implementation Highlights**:
   ```rust
@@ -31,67 +38,36 @@
       get_registry_daku_records_aux(canister_id).await
   }
 
-  // Helper function to handle different encoding attempts
-  async fn get_registry_daku_records_aux(
+  // Primary function to get GG Album registry records
+  pub async fn get_gg_registry_records(
       canister_id: Principal,
-  ) -> Result<Vec<DakuRegistryRecord>, (RejectionCode, String)> {
-      // Try the correct interface, matching exactly the Candid declared interface
-      match ic_cdk::api::call::call::<(), (Vec<(TokenIndex, AccountId)>,)>(
+  ) -> Result<Vec<GGRegistryRecord>, (RejectionCode, String)> {
+      // Based on the provided Candid definition, getRegistry returns Vec<(TokenIndex, AccountIdentifier1)>
+      match ic_cdk::api::call::call::<(), (Vec<(TokenIndex, AccountIdentifier1)>,)>(
           canister_id,
           "getRegistry",
           ()
       ).await {
-          Ok((records,)) => {
-              // Convert tuples to our DakuRegistryRecord struct
-              let daku_records = records.into_iter()
-                  .map(|(index, owner)| {
-                      DakuRegistryRecord {
-                          index,
-                          owner,
-                      }
-                  })
-                  .collect();
-              Ok(daku_records)
-          },
-          Err(err) => {
-              // If this fails, try to decode the raw response
-              match get_registry_raw(canister_id).await {
-                  Ok(bytes) => {
-                      // Try to decode as the exact expected format
-                      if let Ok((result,)) = candid::decode_one::<(Vec<(TokenIndex, AccountId)>,)>(&bytes) {
-                          let daku_records = result.into_iter()
-                              .map(|(index, owner)| {
-                                  DakuRegistryRecord {
-                                      index,
-                                      owner,
-                                  }
-                              })
-                              .collect();
-                          return Ok(daku_records);
-                      }
-                      
-                      // If all decoding attempts fail, return the original error
-                      Err(err)
-                  },
-                  Err(_) => Err(err),
-              }
-          }
+          // Process results...
       }
   }
   ```
 
 - **Registry Data Structure**
   ```rust
-  // Define a new structure specifically for the Daku registry format based on the Candid definition
+  // Daku registry format
   #[derive(candid::CandidType, candid::Deserialize, Debug, Clone)]
   pub struct DakuRegistryRecord {
       pub index: TokenIndex,
       pub owner: AccountId,
   }
 
-  // Define TokenIndex and AccountId as per Candid definition
-  pub type TokenIndex = u32;
-  pub type AccountId = String;
+  // GG Album registry format 
+  #[derive(candid::CandidType, candid::Deserialize, Debug, Clone)]
+  pub struct GGRegistryRecord {
+      pub index: TokenIndex,
+      pub owner: AccountIdentifier1,
+  }
   ```
 
 - **Multiple Access Methods**
@@ -100,6 +76,7 @@
   - Token-to-owner mapping
   - Registry entry tuples
   - Raw byte access for custom decoding
+  - Collection-specific optimized access paths
 
 ### 3. Wallet Rust NFT Query Enhancements (May 2024)
 - **EXT Token Standard Support**

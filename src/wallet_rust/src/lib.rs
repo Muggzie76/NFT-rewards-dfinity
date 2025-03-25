@@ -1,15 +1,27 @@
-use candid::{CandidType, Principal};
+use candid::{CandidType, Nat, Principal};
 use ic_cdk_macros::*;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use ic_cdk::api::time;
 use sha2::{Digest, Sha224};
 use ic_cdk::api::call::RejectionCode;
+use ic_cdk::api::{
+    management_canister::http_request::{HttpResponse, TransformArgs},
+};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 // Import our EXT standard implementation
 mod ext;
+mod daku_interface;
+mod gg_album_interface;
+mod nft_registry_interface;
+mod gg_registry_interface;
 use ext::tokens::{create_tokens_query_encodings, decode_tokens_response, QueryLog};
+use daku_interface::get_tokens_for_user;
+use gg_album_interface::get_album_tokens_for_user;
+use nft_registry_interface::{TokenOwner, DakuRegistryRecord, get_registry_raw, get_registry_tokens, get_registry_map, get_registry_entries, get_registry_daku_records};
+use gg_registry_interface::{GGRegistryRecord, get_gg_registry_raw, get_gg_registry_records, get_gg_registry_tokens, get_gg_registry_map, get_gg_tokens_for_owner};
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Default, Debug)]
 struct NFTProgress {
@@ -35,7 +47,7 @@ struct HolderInfo {
 
 // Constants for external canister IDs
 const DAKU_MOTOKO_CANISTER: &str = "erfen-7aaaa-aaaap-ahniq-cai";
-const GG_ALBUM_CANISTER: &str = "v6gck-vqaaa-aaaal-qi3sa-cai";
+const GG_ALBUM_CANISTER: &str = "v2ekv-yyaaa-aaaag-qjw2q-cai";
 const CACHE_DURATION: u64 = 24 * 60 * 60 * 1_000_000_000; // 24 hours in nanoseconds (optimized from 5 minutes)
 const EXT_METHOD_NAME: &str = "tokens"; // Standard EXT method for querying tokens
 
@@ -248,11 +260,31 @@ async fn query_tokens(canister_id_text: &str, user: &Principal) -> Result<u64, S
 
 // Update implementations to use the new query function
 async fn query_daku_motoko_tokens(user: &Principal) -> Result<u64, String> {
-    query_tokens(DAKU_MOTOKO_CANISTER, user).await
+    let daku_canister = Principal::from_text(DAKU_MOTOKO_CANISTER)
+        .map_err(|e| format!("Invalid Daku canister ID: {}", e))?;
+
+    match get_tokens_for_user(daku_canister, *user).await {
+        Ok(tokens) => Ok(tokens.len() as u64),
+        Err((code, msg)) => {
+            ic_cdk::print(format!("Daku call error: {:?} - {}", code, msg));
+            // Try fallback method
+            query_tokens(DAKU_MOTOKO_CANISTER, user).await
+        }
+    }
 }
 
 async fn query_gg_album_tokens(user: &Principal) -> Result<u64, String> {
-    query_tokens(GG_ALBUM_CANISTER, user).await
+    let album_canister = Principal::from_text(GG_ALBUM_CANISTER)
+        .map_err(|e| format!("Invalid GG Album canister ID: {}", e))?;
+
+    match get_album_tokens_for_user(album_canister, *user).await {
+        Ok(tokens) => Ok(tokens.len() as u64),
+        Err((code, msg)) => {
+            ic_cdk::print(format!("GG Album call error: {:?} - {}", code, msg));
+            // Try fallback method
+            query_tokens(GG_ALBUM_CANISTER, user).await
+        }
+    }
 }
 
 // Helper to check if we need to refresh cache for a user
@@ -845,4 +877,304 @@ where
             }
         }
     }
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Default, Debug)]
+pub struct GetAllTokensResponse {
+    pub total_count: u64,
+    pub daku_count: u64,
+    pub gg_album_count: u64,
+    pub errors: Vec<String>,
+}
+
+#[ic_cdk::update]
+async fn get_all_tokens(user: String) -> GetAllTokensResponse {
+    let mut response = GetAllTokensResponse::default();
+    
+    match Principal::from_text(&user) {
+        Ok(principal) => {
+            // Query Daku tokens
+            match query_daku_motoko_tokens(&principal).await {
+                Ok(count) => {
+                    response.daku_count = count;
+                    response.total_count += count;
+                }
+                Err(e) => {
+                    response.errors.push(format!("Failed to query Daku tokens: {}", e));
+                }
+            }
+            
+            // Query GG Album tokens
+            match query_gg_album_tokens(&principal).await {
+                Ok(count) => {
+                    response.gg_album_count = count;
+                    response.total_count += count;
+                }
+                Err(e) => {
+                    response.errors.push(format!("Failed to query GG Album tokens: {}", e));
+                }
+            }
+        },
+        Err(e) => {
+            response.errors.push(format!("Invalid principal: {}", e));
+        }
+    }
+    
+    response
+}
+
+// Updated registry query function
+#[ic_cdk::update]
+async fn get_nft_registry(canister_id: String) -> String {
+    let mut result = String::new();
+    
+    // Validate canister ID format
+    match Principal::from_text(&canister_id) {
+        Ok(canister_principal) => {
+            // Validate that this looks like a canister ID (not a user principal)
+            if canister_principal.as_slice().len() < 10 {
+                return format!("Error: {} doesn't appear to be a valid canister ID (too short)", canister_id);
+            }
+            
+            let mut success = false;
+            
+            // Check if this is GG Album canister
+            if canister_id == GG_ALBUM_CANISTER {
+                match get_gg_registry_records(canister_principal).await {
+                    Ok(records) => {
+                        success = true;
+                        let total = records.len();
+                        result.push_str(&format!("Registry for {} (GG Album format): {} records\n", canister_id, total));
+                        
+                        // Show only a limited number of records
+                        let display_limit = 20;
+                        let preview_records = if total > display_limit {
+                            &records[0..display_limit]
+                        } else {
+                            &records[..]
+                        };
+                        
+                        for record in preview_records {
+                            // Each record has index and owner fields
+                            result.push_str(&format!("Index: {}, Owner: {}\n", record.index, record.owner));
+                        }
+                        
+                        if total > display_limit {
+                            result.push_str(&format!("... and {} more records\n", total - display_limit));
+                        }
+                    },
+                    Err((code, msg)) => {
+                        result.push_str(&format!("Error querying GG Album registry format: {:?} - {}\n", code, msg));
+                    }
+                }
+            }
+            
+            // Try Daku-specific record format
+            if !success {
+                match get_registry_daku_records(canister_principal).await {
+                    Ok(records) => {
+                        success = true;
+                        let total = records.len();
+                        result.push_str(&format!("Registry for {} (Daku format): {} records\n", canister_id, total));
+                        
+                        // Show only a limited number of records
+                        let display_limit = 20;
+                        let preview_records = if total > display_limit {
+                            &records[0..display_limit]
+                        } else {
+                            &records[..]
+                        };
+                        
+                        for record in preview_records {
+                            // Each record now has index and owner fields
+                            result.push_str(&format!("Index: {}, Owner: {}\n", record.index, record.owner));
+                        }
+                        
+                        if total > display_limit {
+                            result.push_str(&format!("... and {} more records\n", total - display_limit));
+                        }
+                    },
+                    Err((code, msg)) => {
+                        result.push_str(&format!("Error querying Daku registry format: {:?} - {}\n", code, msg));
+                    }
+                }
+            }
+            
+            // Try raw string method as fallback
+            if !success {
+                // Try GG Album raw first if that's the target canister
+                if canister_id == GG_ALBUM_CANISTER {
+                    match get_gg_registry_raw(canister_principal).await {
+                        Ok(registry) => {
+                            success = true;
+                            result.push_str("RAW GG Album registry format:\n");
+                            if registry.len() > 500 {
+                                // Display the first 500 bytes as debug format
+                                result.push_str(&format!("Preview: {:?}\n...", &registry[0..500]));
+                            } else {
+                                // Display the whole byte vector in debug format
+                                result.push_str(&format!("Registry for {} (raw):\n{:?}", canister_id, registry));
+                            }
+                        },
+                        Err((_, error)) => {
+                            result.push_str(&format!("Failed to get raw GG Album registry: {}\n", error));
+                        }
+                    }
+                }
+                
+                if !success {
+                    match get_registry_raw(canister_principal).await {
+                        Ok(registry) => {
+                            success = true;
+                            result.push_str("RAW registry format:\n");
+                            if registry.len() > 500 {
+                                // Display the first 500 bytes as debug format
+                                result.push_str(&format!("Preview: {:?}\n...", &registry[0..500]));
+                            } else {
+                                // Display the whole byte vector in debug format
+                                result.push_str(&format!("Registry for {} (raw):\n{:?}", canister_id, registry));
+                            }
+                        },
+                        Err((_, error)) => {
+                            result.push_str(&format!("Failed to get raw registry: {}\n", error));
+                        }
+                    }
+                }
+            }
+            
+            // Try alternative method (token vector)
+            if !success {
+                if canister_id == GG_ALBUM_CANISTER {
+                    match get_gg_registry_tokens(canister_principal).await {
+                        Ok(tokens) => {
+                            success = true;
+                            result.push_str(&format!("Registry for {} (GG tokens): {} entries\n", canister_id, tokens.len()));
+                            
+                            // Limit to first 20 entries to avoid excessive output
+                            let mut count = 0;
+                            for token_id in tokens.iter() {
+                                if count >= 20 {
+                                    result.push_str("... (more entries available)\n");
+                                    break;
+                                }
+                                result.push_str(&format!("Token: {}\n", token_id));
+                                count += 1;
+                            }
+                        },
+                        Err((inner_code, inner_msg)) => {
+                            result.push_str(&format!("Error querying GG token registry: {:?} - {}\n", inner_code, inner_msg));
+                        }
+                    }
+                } else {
+                    match get_registry_tokens(canister_principal).await {
+                        Ok(tokens) => {
+                            success = true;
+                            result.push_str(&format!("Registry for {} (tokens): {} entries\n", canister_id, tokens.len()));
+                            
+                            // Limit to first 20 entries to avoid excessive output
+                            let mut count = 0;
+                            for token_id in tokens.iter() {
+                                if count >= 20 {
+                                    result.push_str("... (more entries available)\n");
+                                    break;
+                                }
+                                result.push_str(&format!("Token: {}\n", token_id));
+                                count += 1;
+                            }
+                        },
+                        Err((inner_code, inner_msg)) => {
+                            result.push_str(&format!("Error querying token registry: {:?} - {}\n", inner_code, inner_msg));
+                        }
+                    }
+                }
+            }
+            
+            // Try getting registry as a HashMap
+            if !success {
+                if canister_id == GG_ALBUM_CANISTER {
+                    match get_gg_registry_map(canister_principal).await {
+                        Ok(map) => {
+                            success = true;
+                            result.push_str(&format!("Registry for {} (GG map): {} entries\n", canister_id, map.len()));
+                            
+                            // Limit to first 20 entries to avoid excessive output
+                            let mut count = 0;
+                            for (token_id, owner) in map.iter() {
+                                if count >= 20 {
+                                    result.push_str("... (more entries available)\n");
+                                    break;
+                                }
+                                result.push_str(&format!("Token: {}, Owner: {}\n", token_id, owner.to_text()));
+                                count += 1;
+                            }
+                        },
+                        Err((map_code, map_msg)) => {
+                            result.push_str(&format!("Error querying GG registry map: {:?} - {}\n", map_code, map_msg));
+                        }
+                    }
+                } else {
+                    match get_registry_map(canister_principal).await {
+                        Ok(map) => {
+                            success = true;
+                            result.push_str(&format!("Registry for {} (map): {} entries\n", canister_id, map.len()));
+                            
+                            // Limit to first 20 entries to avoid excessive output
+                            let mut count = 0;
+                            for (token_id, owner) in map.iter() {
+                                if count >= 20 {
+                                    result.push_str("... (more entries available)\n");
+                                    break;
+                                }
+                                result.push_str(&format!("Token: {}, Owner: {}\n", token_id, owner.to_text()));
+                                count += 1;
+                            }
+                        },
+                        Err((map_code, map_msg)) => {
+                            result.push_str(&format!("Error querying registry map: {:?} - {}\n", map_code, map_msg));
+                        }
+                    }
+                }
+            }
+            
+            // Try getting registry entries as records
+            if !success {
+                match get_registry_entries(canister_principal).await {
+                    Ok(entries) => {
+                        success = true;
+                        result.push_str(&format!("Found {} registry entries\n", entries.len()));
+                        if entries.len() > 0 {
+                            for entry in entries.iter().take(10) {
+                                result.push_str(&format!("Token: {}, Owner: {}\n", entry.0, entry.1.to_text()));
+                            }
+                            if entries.len() > 10 {
+                                result.push_str("...(truncated)\n");
+                            }
+                        }
+                        result.push_str(&format!("Registry for {} (entries):\n{} entries\n", canister_id, entries.len()));
+                    },
+                    Err((_, error)) => {
+                        result.push_str(&format!("Failed to get registry entries: {}\n", error));
+                    }
+                }
+            }
+            
+            // Finally try direct canister call for EXT interface if nothing else worked
+            if !success {
+                result.push_str("\nAttempting to use EXT standard query...");
+                match query_tokens(&canister_id, &Principal::anonymous()).await {
+                    Ok(count) => {
+                        result.push_str(&format!("\nEXT query successful: {} tokens found", count));
+                    },
+                    Err(err) => {
+                        result.push_str(&format!("\nEXT query failed: {}", err));
+                    }
+                }
+            }
+        },
+        Err(e) => {
+            result.push_str(&format!("Invalid canister ID format: {}. Make sure you're using a correct canister ID.", e));
+        }
+    }
+    
+    result
 }
