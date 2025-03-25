@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World 8 NFT Staking Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #000B1E;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+        }
+        .dashboard {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-gap: 20px;
+        }
+        .header {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: rgba(0, 31, 61, 0.3);
+            border: 1px solid rgba(0, 102, 204, 0.3);
+            border-radius: 4px;
+        }
+        .panel {
+            background: rgba(0, 31, 61, 0.3);
+            border: 1px solid rgba(0, 102, 204, 0.3);
+            border-radius: 4px;
+            padding: 20px;
+        }
+        .panel h2 {
+            color: #00ffff;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        .stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .stat-card {
+            flex: 1;
+            min-width: 120px;
+            background: rgba(0, 41, 81, 0.5);
+            border: 1px solid rgba(0, 102, 204, 0.5);
+            border-radius: 4px;
+            padding: 15px;
+            text-align: center;
+        }
+        .stat-card .value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #00ffff;
+        }
+        .stat-card .label {
+            font-size: 0.8em;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        th {
+            color: #00ffff;
+        }
+        .chart-container {
+            position: relative;
+            height: 250px;
+        }
+        .full-width {
+            grid-column: 1 / -1;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1 style="color: #00ffff; margin: 0;">World 8 NFT Staking Dashboard</h1>
+            <div id="current-time"></div>
+        </div>
+        
+        <div class="panel full-width">
+            <h2>Overall NFT Stats</h2>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="value" id="total-holders">128</div>
+                    <div class="label">Total Holders</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value" id="total-nfts">4,109</div>
+                    <div class="label">Total NFTs</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value" id="daku-nfts">1,630</div>
+                    <div class="label">Daku NFTs</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value" id="gg-nfts">2,479</div>
+                    <div class="label">GG Album NFTs</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value" id="avg-nfts">32.1</div>
+                    <div class="label">Avg NFTs/Holder</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="panel">
+            <h2>NFT Collection Distribution</h2>
+            <div class="chart-container">
+                <canvas id="collection-chart"></canvas>
+            </div>
+        </div>
+        
+        <div class="panel">
+            <h2>NFT Holding Size Distribution</h2>
+            <div class="chart-container">
+                <canvas id="holdings-chart"></canvas>
+            </div>
+        </div>
+        
+        <div class="panel full-width">
+            <h2>Top NFT Holders</h2>
+            <table id="top-holders">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Principal ID</th>
+                        <th>Daku NFTs</th>
+                        <th>GG Album NFTs</th>
+                        <th>Total NFTs</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr>
+                        <td>1</td>
+                        <td>ld5uj-...-pqe</td>
+                        <td>299</td>
+                        <td>2,372</td>
+                        <td>2,671</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>e7wmz-...-lae</td>
+                        <td>129</td>
+                        <td>0</td>
+                        <td>129</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>jt6pq-...-sqe</td>
+                        <td>100</td>
+                        <td>0</td>
+                        <td>100</td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td>tozpi-...-4qe</td>
+                        <td>52</td>
+                        <td>2</td>
+                        <td>54</td>
+                    </tr>
+                    <tr>
+                        <td>5</td>
+                        <td>u3loh-...-7ae</td>
+                        <td>47</td>
+                        <td>6</td>
+                        <td>53</td>
+                    </tr>
+                    <tr>
+                        <td>6</td>
+                        <td>ybi4b-...-rae</td>
+                        <td>50</td>
+                        <td>1</td>
+                        <td>51</td>
+                    </tr>
+                    <tr>
+                        <td>7</td>
+                        <td>grcwi-...-lqe</td>
+                        <td>44</td>
+                        <td>0</td>
+                        <td>44</td>
+                    </tr>
+                    <tr>
+                        <td>8</td>
+                        <td>wxnnz-...-zqe</td>
+                        <td>36</td>
+                        <td>7</td>
+                        <td>43</td>
+                    </tr>
+                    <tr>
+                        <td>9</td>
+                        <td>v7emq-...-lqe</td>
+                        <td>32</td>
+                        <td>1</td>
+                        <td>33</td>
+                    </tr>
+                    <tr>
+                        <td>10</td>
+                        <td>3qaxv-...-6qe</td>
+                        <td>27</td>
+                        <td>3</td>
+                        <td>30</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="panel full-width">
+            <h2>Reward Projection (10% APY)</h2>
+            <div class="chart-container">
+                <canvas id="reward-chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Update current time
+        function updateTime() {
+            document.getElementById('current-time').textContent = new Date().toLocaleString();
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+
+        // Holders data from CSV file
+        const holders = [{"principal": "nixkj-77c5e-q7qik-ewuhi-hp4gs-oggzq-fj2v5-62cdz-amjrc-pz2nz-oqe", "daku_count": 4, "gg_count": 0, "total_count": 4, "already_in_canister": true}, {"principal": "kwte6-azsaw-mek5y-mkcya-4wkkp-fhb76-wzqtt-lwsxz-amgs4-h2wxy-eqe", "daku_count": 22, "gg_count": 6, "total_count": 28, "already_in_canister": true}, {"principal": "f2nj3-jtefx-xy4b5-pdfia-he3lj-2nbja-h3d2d-syyro-4piss-5ivqe-sqe", "daku_count": 8, "gg_count": 0, "total_count": 8, "already_in_canister": false}, {"principal": "ap2h3-mdvaz-br5tt-s5tst-nap6q-t6kuv-vlwla-a3xvj-f4a4w-4lonn-sqe", "daku_count": 2, "gg_count": 0, "total_count": 2, "already_in_canister": false}, {"principal": "", "daku_count": 1, "gg_count": 1, "total_count": 2, "already_in_canister": false}, {"principal": "l4t4l-264ub-ysr3o-2lovb-md65r-p3mpa-kjk7a-hmmvt-ya7fh-ljoyg-cae", "daku_count": 4, "gg_count": 0, "total_count": 4, "already_in_canister": false}, {"principal": "4bxu7-fuuct-otitq-emxde-emjvt-xl46f-scuz6-7yzvy-tlrbz-eeeap-oae", "daku_count": 2, "gg_count": 0, "total_count": 2, "already_in_canister": false}, {"principal": "rym5r-a6mj7-wfv3g-lypjx-ejpxa-vvill-eq4nc-wvx2v-l2c47-jym4p-wqe", "daku_count": 2, "gg_count": 0, "total_count": 2, "already_in_canister": false}, {"principal": "k3vnz-ukxjv-qvzaz-m6fpu-2sdpt-frpgc-o4rym-teurx-ri24u-clam5-uae", "daku_count": 1, "gg_count": 0, "total_count": 1, "already_in_canister": false}, {"principal": "3rtwo-vaa53-j522q-p4v2o-pgxfx-fuv6e-3j4nb-xuo6h-jc6a7-dl5fm-3qe", "daku_count": 18, "gg_count": 0, "total_count": 18, "already_in_canister": false}, {"principal": "4zfc6-pn6z2-h7sa2-ahazx-vbmo3-rppde-7x57p-wl723-vpfzm-7krxb-5ae", "daku_count": 6, "gg_count": 0, "total_count": 6, "already_in_canister": false}, {"principal": "rqjzd-bg2vw-pmzvo-fk45m-lkqot-bwjfb-eejwr-dtbsg-ww6uq-rc6lm-nae", "daku_count": 1, "gg_count": 0, "total_count": 1, "already_in_canister": false}, {"principal": "7fh6l-hw6nb-qs4hg-o37cd-pcrbx-v4yd7-igbnz-fo7ku-fmya5-mgypp-bae", "daku_count": 2, "gg_count": 0, "total_count": 2, "already_in_canister": false}, {"principal": "stxcp-r4cvs-qgs5i-54htd-5x3of-optjv-bx3lr-663u3-c6uky-qicvu-6ae", "daku_count": 6, "gg_count": 0, "total_count": 6, "already_in_canister": false}, {"principal": "jt6pq-pfact-6nq4w-xpd7l-jvsh3-ghmvo-yp34h-pmon5-5dcjo-rygay-sqe", "daku_count": 100, "gg_count": 0, "total_count": 100, "already_in_canister": true}, {"principal": "nhmua-clb6g-bwq4j-xncof-cst74-57pq6-mv342-iub2s-rs5ec-baibl-nae", "daku_count": 20, "gg_count": 1, "total_count": 21, "already_in_canister": false}, {"principal": "va6r7-v33hl-qubvq-oeyfl-a2mbp-dz5s5-h4zgm-dnjnc-s5uyw-mofpn-jae", "daku_count": 19, "gg_count": 1, "total_count": 20, "already_in_canister": false}, {"principal": "gu2uo-b7oaz-icc4z-7pvis-mwy43-jfpie-lmnn4-g4gpx-re5pz-mvrpq-nae", "daku_count": 6, "gg_count": 0, "total_count": 6, "already_in_canister": false}, {"principal": "gmhck-vq4mh-ywpzp-fm5mb-avf3s-zglu3-75ovv-rmh2u-c6mut-cihif-wae", "daku_count": 2, "gg_count": 0, "total_count": 2, "already_in_canister": false}, {"principal": "ybi4b-ho2w6-vmbuh-vlbtg-w2tmm-n2e5o-xfsdn-5i7gt-w4ehe-jrhfl-rae", "daku_count": 50, "gg_count": 1, "total_count": 51, "already_in_canister": false}, {"principal": "23jeh-d4pjo-r2biy-e6hrf-tgo36-xqjrg-kkk5h-lmw7p-rch6o-rz2aa-xqe", "daku_count": 20, "gg_count": 0, "total_count": 20, "already_in_canister": false}, {"principal": "vbw7f-vrvep-gncha-udzry-v736h-gsf7m-kqyob-hawfi-h2swu-k2vsg-wqe", "daku_count": 12, "gg_count": 0, "total_count": 12, "already_in_canister": false}, {"principal": "v7emq-nwbuf-7bbyo-kxeho-zdiqo-xvbqe-ks6ri-7agso-od3kf-l5kdh-lqe", "daku_count": 32, "gg_count": 1, "total_count": 33, "already_in_canister": false}, {"principal": "o3nat-3ix22-juqph-xdhyp-krhly-vqk3m-c243q-uxuov-vv4yj-3b4j7-mqe", "daku_count": 5, "gg_count": 1, "total_count": 6, "already_in_canister": false}, {"principal": "7cde5-5jf43-ilqvi-7fzck-dr3yi-mkqzs-jmgk3-6rkqu-fwfxa-grlqy-jae", "daku_count": 2, "gg_count": 0, "total_count": 2, "already_in_canister": false}, {"principal": "kzsss-ygqdw-k3n3y-5iqdn-tjlms-w66wj-ds5wn-3zzch-4adjr-oqkaa-6qe", "daku_count": 17, "gg_count": 0, "total_count": 17, "already_in_canister": false}, {"principal": "3qaxv-ory7o-7ppje-ds54l-gamig-ye7wj-n4yta-vkmms-ki45u-peixf-6qe", "daku_count": 27, "gg_count": 3, "total_count": 30, "already_in_canister": false}, {"principal": "5isdy-klkm5-u5l35-wlf5n-kvk3i-4x6vv-6ulmo-p3mpp-3ccqv-gwff5-7qe", "daku_count": 20, "gg_count": 0, "total_count": 20, "already_in_canister": false}, {"principal": "cepgi-7eagg-d7zit-qd2vz-5sm4u-e6hot-ncdkj-yppin-pu5pa-ifsu5-vae", "daku_count": 10, "gg_count": 0, "total_count": 10, "already_in_canister": false}, {"principal": "hsial-mstr7-avdv3-6dt3t-aig2p-ruign-vidkk-4zt6z-awa6s-qrz4g-iqe", "daku_count": 1, "gg_count": 0, "total_count": 1, "already_in_canister": false}, {"principal": "jxoza-mwiyn-gz2kc-qxory-3fyji-uyjzz-723f7-efg7q-mfpdj-xwylt-iqe", "daku_count": 6, "gg_count": 1, "total_count": 7, "already_in_canister": false}, {"principal": "l36yq-7oj53-uj3e5-qbpjc-4yqqa-vr5l5-qbtug-lfddh-jzi5m-ez5ky-zqe", "daku_count": 1, "gg_count": 0, "total_count": 1, "already_in_canister": false}, {"principal": "kwznk-aus3b-qwugi-iu4cm-4yziu-ravts-ofr6q-2fc4r-vdpm3-6uo7k-6ae", "daku_count": 23, "gg_count": 0, "total_count": 23, "already_in_canister": false}, {"principal": "iv645-7sxnd-wm3rv-zgbdt-z3cei-4yobc-3o62b-rm227-fvdm5-355kc-qqe", "daku_count": 6, "gg_count": 0, "total_count": 6, "already_in_canister": false}, {"principal": "vhqjo-y2o2g-rrezd-amcak-7rtpx-mta4v-i3vq4-zq7hw-osnrp-2jk4l-tqe", "daku_count": 20, "gg_count": 0, "total_count": 20, "already_in_canister": false}, {"principal": "afrzs-fgfid-pfrua-bjpge-3bet3-kdiuh-qb6do-ld4lu-j6v6r-nxnho-dqe", "daku_count": 20, "gg_count": 0, "total_count": 20, "already_in_canister": false}, {"principal": "ecxvw-h7aa4-jyrlv-wifkt-rxpo3-4ac3f-4s375-2hquv-irfft-q2dzz-wqe", "daku_count": 26, "gg_count": 0, "total_count": 26, "already_in_canister": false}, {"principal": "dxfos-dhkl2-iku5k-wrlah-6ty5o-crhze-esoi4-acsrd-qaj34-z6pvv-gqe", "daku_count": 3, "gg_count": 0, "total_count": 3, "already_in_canister": false}, {"principal": "3txud-fyj6a-76yup-et4mb-jtmwm-ucbzn-lw7wl-w26va-y45mg-i6d2s-jae", "daku_count": 22, "gg_count": 0, "total_count": 22, "already_in_canister": false}, {"principal": "ppeau-b5qio-itzct-ggeut-grzne-4k7ps-mrmzy-lxrhe-fpfyn-ockvg-pqe", "daku_count": 12, "gg_count": 0, "total_count": 12, "already_in_canister": false}, {"principal": "u4auy-agl7g-btv2w-5frrn-jmady-geyln-mexxn-7lldm-tdhpe-wmtfg-uqe", "daku_count": 2, "gg_count": 0, "total_count": 2, "already_in_canister": false}, {"principal": "aq5df-f3n5i-foqjp-uocjo-k26ax-ln5lt-fk3bh-2vg5w-fudzq-77gbk-tae", "daku_count": 3, "gg_count": 0, "total_count": 3, "already_in_canister": false}, {"principal": "f3k4c-bdljw-uw4r4-6icnx-hlxpn-f3mb4-2k23r-6uwg7-hpqmc-uif5l-pqe", "daku_count": 20, "gg_count": 0, "total_count": 20, "already_in_canister": false}, {"principal": "dhr23-lj7p6-o4hkt-eit2h-zeeq3-utkap-44s5j-i2iii-aq3vg-a5mw7-iae", "daku_count": 7, "gg_count": 1, "total_count": 8, "already_in_canister": false}, {"principal": "rypm6-ztvpz-aqr5r-4jpsy-gmh53-jwcir-uhjdi-x7x5n-qqmdr-zsmyd-oae", "daku_count": 16, "gg_count": 0, "total_count": 16, "already_in_canister": false}, {"principal": "gnvpq-g5uzy-jtm6a-vroqr-ebao5-r3b5y-nk5ea-d6r4k-4jvrz-tmsqb-xae", "daku_count": 3, "gg_count": 0, "total_count": 3, "already_in_canister": false}, {"principal": "bg5z5-k44xg-gpmlj-tw2rp-6kibr-ubpj7-72yng-2cc2h-p2la5-qxbvt-gae", "daku_count": 4, "gg_count": 0, "total_count": 4, "already_in_canister": false}, {"principal": "qtzn6-fcbmk-f2zye-gsrvk-pdc7q-q5qhh-kd3sf-qtlzx-joq4u-vt7j6-zae", "daku_count": 20, "gg_count": 0, "total_count": 20, "already_in_canister": false}, {"principal": "2ge72-dlvtp-4ie3x-ic2ju-7oe4v-6pzuj-foeop-xdtuv-3hyfo-beqpq-7ae", "daku_count": 4, "gg_count": 0, "total_count": 4, "already_in_canister": false}, {"principal": "ilppi-qyk4c-m5dvh-6oxl4-77jwm-27qoq-kttmx-l67ms-nzqmx-t6raf-7ae", "daku_count": 7, "gg_count": 2, "total_count": 9, "already_in_canister": false}, {"principal": "png6r-serfz-53n44-ve7je-p3j4l-7gbo7-6tnli-wqefg-oj6lr-3md5t-iqe", "daku_count": 14, "gg_count": 0, "total_count": 14, "already_in_canister": false}, {"principal": "lbyb4-v5nfi-xq7uf-a6ltw-3z3kt-lo5la-v4vrr-rapkx-te437-pfmv7-gae", "daku_count": 2, "gg_count": 0, "total_count": 2, "already_in_canister": false}, {"principal": "u7say-t7q7m-gde65-lg47y-uqkwe-fi74i-qzfy4-ejjym-5pr5v-ze6uu-nae", "daku_count": 4, "gg_count": 0, "total_count": 4, "already_in_canister": false}, {"principal": "oov3d-lbhjk-ukjw6-gwyxr-5zyqi-nwczk-tsqk7-bvnja-lwj2y-meq7d-3qe", "daku_count": 12, "gg_count": 0, "total_count": 12, "already_in_canister": false}, {"principal": "wn3ei-naq75-oaat7-aouae-xtwxx-o4ytg-gjalf-pj43x-zsabp-uaopu-yqe", "daku_count": 25, "gg_count": 1, "total_count": 26, "already_in_canister": false}, {"principal": "u3loh-foc5j-kygdy-ngpv6-ifsup-wlgvf-5lazy-hchzz-h3z4w-2ss7u-7ae", "daku_count": 47, "gg_count": 6, "total_count": 53, "already_in_canister": false}, {"principal": "tx2xw-ibwpn-ibt2r-3uopl-a4joy-67n4q-btvqc-cq76o-kj7bc-m532g-aae", "daku_count": 2, "gg_count": 0, "total_count": 2, "already_in_canister": false}, {"principal": "aqmya-2tta5-xerhf-2k6kp-mhhu5-5tqi4-wfhap-w7bkn-yehao-novzj-hae", "daku_count": 2, "gg_count": 0, "total_count": 2, "already_in_canister": false}, {"principal": "rw6vl-rtgmu-xd6vq-wo5zb-urdvb-ib4j6-xdk3g-hs6wc-sjpqv-36u63-oqe", "daku_count": 1, "gg_count": 0, "total_count": 1, "already_in_canister": false}, {"principal": "dew2c-oslno-ls7hp-3adol-vevbv-vi37c-nn4tx-7eaeg-33kr4-smnth-sae", "daku_count": 24, "gg_count": 1, "total_count": 25, "already_in_canister": false}, {"principal": "r4zq5-wjy5j-qb4bp-jl5w5-e5toa-bh32v-wyylb-jtjzh-xt7k2-xxyab-gae", "daku_count": 12, "gg_count": 0, "total_count": 12, "already_in_canister": false}, {"principal": "kpgsl-vdmz4-a44cj-5p65s-hzpl5-cnu5d-yxmrq-hjod4-gnhhf-vwxum-fae", "daku_count": 7, "gg_count": 3, "total_count": 10, "already_in_canister": false}, {"principal": "u4bwp-7f6v6-gui2r-64adg-r2iyy-ewhbw-4gg7b-qeejs-346nn-rirpf-6ae", "daku_count": 2, "gg_count": 0, "total_count": 2, "already_in_canister": false}, {"principal": "yjyao-2xjnf-5yb7g-rdxfk-ktryb-ofb3h-fcwv5-fpruj-zoyrw-hba2r-eae", "daku_count": 20, "gg_count": 0, "total_count": 20, "already_in_canister": false}, {"principal": "esvgk-ohsms-rmefa-tuos4-fmo2k-rcyim-4jggo-view2-krx2f-4c7wu-aqe", "daku_count": 8, "gg_count": 0, "total_count": 8, "already_in_canister": false}, {"principal": "ka5dt-ckj3z-rpjfp-sprxh-bl35g-opnvg-zyava-nj44p-ioqke-oqc3e-6ae", "daku_count": 6, "gg_count": 0, "total_count": 6, "already_in_canister": false}, {"principal": "fgnwe-jfhok-eatob-cumab-6kj43-dnjj2-wpems-zontj-btumx-cvizt-aae", "daku_count": 1, "gg_count": 3, "total_count": 4, "already_in_canister": false}, {"principal": "pv6hp-67fqt-t7oge-zijt4-yim56-lvxbq-ppoeq-nfvdf-tgv2e-xkkni-6ae", "daku_count": 1, "gg_count": 0, "total_count": 1, "already_in_canister": false}, {"principal": "i5e32-kjhjv-qne6a-vgkuw-5nvae-cl6m6-gsvhb-vbnji-ipqgo-ka4u3-lae", "daku_count": 10, "gg_count": 1, "total_count": 11, "already_in_canister": false}, {"principal": "z7fif-qmi4s-na3kd-kgeum-wyk35-z2v6g-zita3-zbzzz-b554r-cpuy6-dae", "daku_count": 1, "gg_count": 0, "total_count": 1, "already_in_canister": false}, {"principal": "awmdx-onrpv-kzwjt-jggtq-t3idz-sbrq2-72c6r-7ajlg-5txoj-4ifwe-dqe", "daku_count": 26, "gg_count": 0, "total_count": 26, "already_in_canister": false}, {"principal": "tozpi-z4twm-3tqa4-7uuyg-nnezm-jr6fo-a6qww-6gbxp-tid7g-b3sqv-4qe", "daku_count": 52, "gg_count": 2, "total_count": 54, "already_in_canister": false}, {"principal": "p74xm-2mrqr-2lzmw-wyhgf-omyew-f4bmu-2kyoj-2jgks-6q5z6-3asqz-qae", "daku_count": 4, "gg_count": 0, "total_count": 4, "already_in_canister": false}, {"principal": "hq3ck-zdnza-cqpnm-p7ogc-bwoqo-hehbb-daud3-veika-k4vvn-re2bw-hqe", "daku_count": 18, "gg_count": 0, "total_count": 18, "already_in_canister": false}, {"principal": "iqnwu-cetn5-kz2v5-x6rzr-qqdbz-qb25t-vmxj5-45gfs-hyil4-ru3hp-cqe", "daku_count": 15, "gg_count": 0, "total_count": 15, "already_in_canister": false}, {"principal": "w66p7-ojqgn-kibom-ofuth-iz4rb-kgpsf-ipnm7-beuq7-75um5-mywtw-oqe", "daku_count": 12, "gg_count": 0, "total_count": 12, "already_in_canister": false}, {"principal": "s6bzd-46mcd-mlbx5-cq2jv-m2mhx-nhj6y-erh6g-y73vq-fnfe6-zax3q-mqe", "daku_count": 8, "gg_count": 0, "total_count": 8, "already_in_canister": false}, {"principal": "yv7u3-uwrgm-hjl4a-ajc46-ztbw5-a23ke-3bz3o-f3xbt-5ffmi-eha7l-kae", "daku_count": 4, "gg_count": 0, "total_count": 4, "already_in_canister": false}, {"principal": "iwqog-g2hsm-4id7s-d62qn-fgh5u-iuluj-znqcc-u2mtz-zlfp6-vigrv-sqe", "daku_count": 3, "gg_count": 0, "total_count": 3, "already_in_canister": false}, {"principal": "s7llh-7kadl-s6kk2-jczni-olpig-id626-phxdo-a2m2c-rik3v-v2djk-lqe", "daku_count": 8, "gg_count": 1, "total_count": 9, "already_in_canister": false}, {"principal": "iy6lh-dxzrf-km5zw-wq5z4-3t6yr-j53ls-pqbqn-p6mo2-7vx5o-4ehro-uae", "daku_count": 1, "gg_count": 0, "total_count": 1, "already_in_canister": false}, {"principal": "3cey4-x5hdl-6ar47-vzvne-bcgig-wbzih-e5bqe-r6nqc-ld362-xpo5o-6qe", "daku_count": 6, "gg_count": 1, "total_count": 7, "already_in_canister": false}, {"principal": "grcwi-s4w4v-mitqx-wvxv4-xmrke-hy3db-i4y7t-xcouf-nq3cd-es3xk-lqe", "daku_count": 44, "gg_count": 0, "total_count": 44, "already_in_canister": false}, {"principal": "q3dfi-x4yia-ixzsu-o3u3q-qnagp-slhfm-mbnwf-uid55-24cfc-smbkx-vqe", "daku_count": 10, "gg_count": 0, "total_count": 10, "already_in_canister": false}, {"principal": "o6or7-pje4v-blzqj-xu5uw-e2pd2-kk7yd-7zzck-qs3ug-wub4f-znx35-dae", "daku_count": 4, "gg_count": 0, "total_count": 4, "already_in_canister": false}, {"principal": "h2x7q-tcgpl-ucfmu-25elq-k6w2g-x66ys-qdpup-gq2as-a53gz-3xqkk-zqe", "daku_count": 19, "gg_count": 3, "total_count": 22, "already_in_canister": false}, {"principal": "e7wmz-tpnxb-nwuxd-vgqr6-wg65t-7c2b3-2hyyp-z73dr-iy7yd-4j2wl-lae", "daku_count": 129, "gg_count": 0, "total_count": 129, "already_in_canister": false}, {"principal": "rmgwx-wkyfe-6whnj-7qf4v-szmfw-4pwjb-imnkj-ol4h5-ob4wh-gbzgf-gqe", "daku_count": 2, "gg_count": 2, "total_count": 4, "already_in_canister": false}, {"principal": "yskcu-kiige-lvdud-35z55-owxvl-52xtd-ntzqs-ztgvv-q32x7-en4m5-pqe", "daku_count": 7, "gg_count": 0, "total_count": 7, "already_in_canister": false}, {"principal": "35vwb-zkwso-kr7mj-gocoe-uorla-eclsj-jumnc-cbypf-sl45n-cwacv-2ae", "daku_count": 1, "gg_count": 0, "total_count": 1, "already_in_canister": false}, {"principal": "ld5uj-tgxfi-jgmdx-ikekg-uu62k-dhhrf-s6jav-3sdbh-4yamx-yzwrs-pqe", "daku_count": 299, "gg_count": 2372, "total_count": 2671, "already_in_canister": false}, {"principal": "jycl5-mloll-sq37s-bhpvq-rgcck-bkpyq-wsizm-gxcmj-duuwm-npbjo-rqe", "daku_count": 2, "gg_count": 0, "total_count": 2, "already_in_canister": false}, {"principal": "nu4jm-lscxo-pvia4-kz6as-eojjx-sipvi-r64bp-lfqjy-ccmvp-vmbft-lae", "daku_count": 12, "gg_count": 0, "total_count": 12, "already_in_canister": false}, {"principal": "n75mi-urrv4-ta622-vebk7-ne53f-qzsw4-6lhzp-ywq7a-zyph2-kuqic-iqe", "daku_count": 14, "gg_count": 0, "total_count": 14, "already_in_canister": false}, {"principal": "wxnnz-bart4-tsufm-hvz3u-fhcgm-vb5yu-ilba5-7qaui-25eg5-nsmbg-zqe", "daku_count": 36, "gg_count": 7, "total_count": 43, "already_in_canister": false}, {"principal": "an2uw-woaeg-p5q6d-h56eg-ollqk-mmfmb-bxjvq-6bzgo-jxm7h-mfmd4-7qe", "daku_count": 6, "gg_count": 0, "total_count": 6, "already_in_canister": false}, {"principal": "dpj4h-fxuuf-gcbkh-wrx5o-c6fwd-m7bud-4csie-yoorz-qhscd-pfagy-rqe", "daku_count": 6, "gg_count": 0, "total_count": 6, "already_in_canister": false}, {"principal": "cujps-7cf2q-rjxre-pnl3n-74y4w-jsqwi-ntwkc-vun6e-saa4u-thrf6-7qe", "daku_count": 24, "gg_count": 0, "total_count": 24, "already_in_canister": false}, {"principal": "iq6ab-fsuad-6lmbp-z6vaq-xwcxt-g7h2r-yjqpn-pvgyq-xki3s-v3bdw-5ae", "daku_count": 4, "gg_count": 0, "total_count": 4, "already_in_canister": false}, {"principal": "pv7k4-zbh35-zjuw7-7ehic-rrsqf-wn45a-cese2-woiy2-qcovi-szqio-tae", "daku_count": 2, "gg_count": 0, "total_count": 2, "already_in_canister": false}, {"principal": "wjsnj-qm47j-wkjbc-nrow5-7on2d-tvvir-dn64p-5fcvl-dlc3p-uw3pe-rqe", "daku_count": 4, "gg_count": 0, "total_count": 4, "already_in_canister": false}, {"principal": "hxdpn-hxyoy-em7uq-73yoz-fcese-vwdzn-fcdtu-p746p-e3fkm-rxnhk-cqe", "daku_count": 0, "gg_count": 1, "total_count": 1, "already_in_canister": false}, {"principal": "654dy-i57dp-77fx5-o73ug-qeorm-y53i2-3ct3i-354oj-jvgy7-nml4n-qae", "daku_count": 0, "gg_count": 1, "total_count": 1, "already_in_canister": false}, {"principal": "tad3v-gcwfd-fnuvl-roj44-montw-xlpwo-7rrsi-epvkl-obk23-kwxhg-hqe", "daku_count": 0, "gg_count": 1, "total_count": 1, "already_in_canister": false}, {"principal": "el5gb-3w2tp-ztpzg-fiyix-e4hvs-4lgmk-kgpx2-fyaen-cgfoi-v4ja5-oae", "daku_count": 0, "gg_count": 1, "total_count": 1, "already_in_canister": false}, {"principal": "egp43-77avf-2yqv7-s6onm-v6a2e-7fh5i-s3zz3-iorxz-pjlrz-36hxl-tae", "daku_count": 0, "gg_count": 1, "total_count": 1, "already_in_canister": false}, {"principal": "tosjb-i4kxh-5bxmq-piymv-2lbmj-2iy4g-msk4r-4wkvj-gjjxb-i3jek-sqe", "daku_count": 0, "gg_count": 1, "total_count": 1, "already_in_canister": false}, {"principal": "6fr5a-2yplr-mhopt-s2nm3-6g6pf-iilmu-tlbcm-mtqiq-rl36j-u7zdz-lae", "daku_count": 0, "gg_count": 2, "total_count": 2, "already_in_canister": false}, {"principal": "wyikv-rgsop-hdpxk-wxjf6-vd7tx-z7pze-x3izn-ctlk3-3uzdp-zga7m-2ae", "daku_count": 0, "gg_count": 3, "total_count": 3, "already_in_canister": false}, {"principal": "27syr-q2dwb-qjzfn-vi7xu-i3zly-vwakb-2bm3f-6ewhs-7gdwb-b27jz-zae", "daku_count": 0, "gg_count": 1, "total_count": 1, "already_in_canister": false}, {"principal": "kq3pl-d26cu-t7s6w-zacgs-cvy6g-6zhg5-qbort-mzsaf-ccnec-xkxrk-gae", "daku_count": 0, "gg_count": 3, "total_count": 3, "already_in_canister": false}, {"principal": "vewbj-vlwc5-svujf-v5m6a-42img-7qu7m-rod4a-r35o5-dgn4u-fsqgp-kqe", "daku_count": 0, "gg_count": 1, "total_count": 1, "already_in_canister": false}, {"principal": "sxbtp-3qdfk-dzfyn-tdtkn-mjogd-kxljb-j5sfh-ouxbj-67x26-ddgkw-jqe", "daku_count": 0, "gg_count": 2, "total_count": 2, "already_in_canister": false}, {"principal": "5774a-fc6cb-vvfwt-nxnfk-umrpf-hkbit-cvu4q-sm42o-srrfh-bqy6d-3qe", "daku_count": 0, "gg_count": 1, "total_count": 1, "already_in_canister": false}, {"principal": "qcimy-maetc-eehvv-u3xd2-nvqwm-e62ml-oqzc5-deibd-2syux-crl42-iae", "daku_count": 0, "gg_count": 1, "total_count": 1, "already_in_canister": false}, {"principal": "hzvyx-jcnle-d6hhi-fu45u-pg37d-zwl7x-suwjt-cxq22-yabqt-dyfkn-lae", "daku_count": 0, "gg_count": 2, "total_count": 2, "already_in_canister": false}, {"principal": "ts5dq-faniq-2bn2h-dl6gs-vv3kq-fybtv-mec5r-har4z-7ntf3-hlmq4-eqe", "daku_count": 0, "gg_count": 1, "total_count": 1, "already_in_canister": false}, {"principal": "w7ng7-pxtat-jay6r-rfryt-cdlol-5kdt6-iuywk-g2hyh-3vt3n-6yeof-mqe", "daku_count": 0, "gg_count": 7, "total_count": 7, "already_in_canister": false}, {"principal": "u5hd6-tzfd2-4zmad-xh5nx-kdsha-2kmwx-a6jag-ti4rg-7aqh4-wycuk-gqe", "daku_count": 0, "gg_count": 1, "total_count": 1, "already_in_canister": false}, {"principal": "3fzac-spyl6-7s5ez-pmbrz-43lpv-vdiqs-ifg4w-j6fr6-jw3hc-7cs4g-oae", "daku_count": 0, "gg_count": 12, "total_count": 12, "already_in_canister": false}, {"principal": "fpz7f-vel23-gpf5p-cadww-34632-bwhik-cf7ek-ogeke-s3ycl-ofb45-cae", "daku_count": 0, "gg_count": 1, "total_count": 1, "already_in_canister": false}, {"principal": "lq5at-mfchu-442xy-fq6db-sbqjc-mdzhi-j3r2y-vvovp-wd7le-elr4u-pae", "daku_count": 0, "gg_count": 6, "total_count": 6, "already_in_canister": false}, {"principal": "di2jg-4jtda-abnle-rkfx5-qs2hb-cjukx-goysk-5ma4a-r73i4-zscob-dqe", "daku_count": 0, "gg_count": 1, "total_count": 1, "already_in_canister": false}, {"principal": "55zes-vjwak-gvak7-fujom-m5rbn-bzzpm-uceeq-37kwq-uhtrn-gfs7a-xqe", "daku_count": 0, "gg_count": 1, "total_count": 1, "already_in_canister": false}, {"principal": "u5lmu-dvijl-hjww7-webdf-wa5jo-6mkuy-gixvd-g7ris-dkliz-wlp5z-gae", "daku_count": 0, "gg_count": 1, "total_count": 1, "already_in_canister": false}, {"principal": "5fwbt-fwfvd-tbmlc-x2l2p-cmzvz-d7w4z-vcezu-ig3h6-olp2w-774lz-dqe", "daku_count": 0, "gg_count": 1, "total_count": 1, "already_in_canister": false}, {"principal": "xk4eb-onetm-jz7et-vwlpm-r5srw-dtggn-fkztz-2hd34-tn2te-sbkrb-hae", "daku_count": 0, "gg_count": 1, "total_count": 1, "already_in_canister": false}, {"principal": "46fa2-c6acr-tg4ci-m344k-tghxg-r5fxs-wuc7w-xqpl6-zvnsm-wl4mb-pae", "daku_count": 0, "gg_count": 2, "total_count": 2, "already_in_canister": false}];
+        
+        // Collection distribution chart
+        const collectionCtx = document.getElementById('collection-chart').getContext('2d');
+        new Chart(collectionCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Daku NFTs', 'GG Album NFTs'],
+                datasets: [{
+                    data: [1630, 2479],
+                    backgroundColor: ['#00ffff', '#ff00ff'],
+                    borderColor: 'rgba(0, 31, 61, 0.3)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#ffffff'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Holdings distribution chart
+        const holdingRanges = [
+            { min: 1, max: 10, label: '1-10 NFTs' },
+            { min: 11, max: 50, label: '11-50 NFTs' },
+            { min: 51, max: 100, label: '51-100 NFTs' },
+            { min: 101, max: 500, label: '101-500 NFTs' },
+            { min: 501, max: Infinity, label: '500+ NFTs' }
+        ];
+
+        const holdingCounts = [85, 37, 4, 1, 1];
+
+        const holdingsCtx = document.getElementById('holdings-chart').getContext('2d');
+        new Chart(holdingsCtx, {
+            type: 'bar',
+            data: {
+                labels: holdingRanges.map(r => r.label),
+                datasets: [{
+                    label: 'Number of Holders',
+                    data: holdingCounts,
+                    backgroundColor: '#00ffff',
+                    borderColor: 'rgba(0, 31, 61, 0.3)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#ffffff'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#ffffff'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+        // Reward projection chart
+        const months = Array.from({length: 12}, (_, i) => {
+            const date = new Date();
+            date.setMonth(date.getMonth() + i);
+            return date.toLocaleString('default', { month: 'short' });
+        });
+
+        // Calculate projected rewards (10% APY divided into monthly amounts)
+        const NFT_VALUE = 1000; // Each NFT is valued at 1000 tokens
+        const APY = 0.10; // 10% annual percentage yield
+        
+        // Calculate monthly yield (simple division for this example)
+        const monthlyYield = APY / 12;
+        
+        // Calculate cumulative rewards over 12 months
+        let cumulativeRewards = [0];
+        for (let i = 1; i <= 12; i++) {
+            const monthlyReward = 4109 * NFT_VALUE * monthlyYield;
+            cumulativeRewards.push(cumulativeRewards[i-1] + monthlyReward);
+        }
+
+        const rewardCtx = document.getElementById('reward-chart').getContext('2d');
+        new Chart(rewardCtx, {
+            type: 'line',
+            data: {
+                labels: ['Start', ...months],
+                datasets: [{
+                    label: 'Cumulative Rewards',
+                    data: cumulativeRewards,
+                    borderColor: '#00ffff',
+                    backgroundColor: 'rgba(0, 255, 255, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#ffffff',
+                            callback: function(value) {
+                                return value.toLocaleString();
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#ffffff'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#ffffff'
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `Rewards: ${context.raw.toLocaleString()} tokens`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
