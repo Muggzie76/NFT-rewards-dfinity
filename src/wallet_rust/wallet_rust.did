@@ -18,4 +18,10 @@ service : {
     "get_all_holders": () -> (vec record { principal; HolderInfo }) query;
     "get_nft_count": (principal) -> (NFTProgress) query;
     "get_all_nft_counts": () -> (vec record { principal; NFTProgress }) query;
+    "get_debug_info": () -> (vec text) query;
+    "test_direct_canister_calls": () -> (vec text);
+    "test_ext_query": (text, text) -> (vec text);
+    "update_nft_count": (principal) -> (nat64);
+    "set_verified_nft_counts": (principal, nat64, nat64) -> (HolderInfo);
+    "bulk_update_nft_counts": (vec principal) -> (vec record { principal; nat64 });
 } 

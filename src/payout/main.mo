@@ -62,13 +62,14 @@ actor Payout {
     private let _MAX_BATCH_SIZE = 100;
     private let MAX_RETRIES = 3;
     private let _RETRY_DELAY = 1_000_000_000;
-    private let CACHE_DURATION = 3600_000_000_000; // 1 hour cache duration
+    private let CACHE_DURATION = 86400_000_000_000; // 24 hours in nanoseconds (optimized from 1 hour)
     
     // Create actors
     private let wallet = actor(Principal.toText(WALLET_CANISTER_ID)) : actor {
         updateNFTCount : (Principal) -> async Nat;
         updateBalance : (Principal, Nat) -> async ();
         batchUpdate : (Principal, Nat) -> async ();
+        bulk_update_nft_counts : ([Principal]) -> async [(Principal, Nat)];
     };
     
     private let ledger = actor(Principal.toText(ICP_LEDGER_CANISTER_ID)) : actor {
@@ -139,7 +140,7 @@ actor Payout {
         return 75;
     };
     
-    // NFT count with caching
+    // NFT count with caching - optimized version
     private func getCachedNFTCount(user: Principal) : async Nat {
         let currentTime = Time.now();
         
@@ -152,9 +153,100 @@ actor Payout {
             case null {};
         };
         
+        // Use the regular update if it's a single user
         let count = await wallet.updateNFTCount(user);
         nftCache.put(user, { count = count; timestamp = currentTime });
         count
+    };
+    
+    // New optimized method for batch processing NFT counts
+    private func getCachedNFTCountsBatch(users: [Principal]) : async [(Principal, Nat)] {
+        let currentTime = Time.now();
+        
+        // Filter users that need updating based on cache
+        let usersToUpdate = Array.filter<Principal>(
+            users,
+            func (user: Principal) : Bool {
+                switch (nftCache.get(user)) {
+                    case (?cache) { 
+                        // Update if cache is expired
+                        return currentTime - cache.timestamp >= CACHE_DURATION;
+                    };
+                    case null { return true; };
+                };
+            }
+        );
+        
+        // If there are users to update, use the bulk update method
+        if (usersToUpdate.size() > 0) {
+            try {
+                let results = await wallet.bulk_update_nft_counts(usersToUpdate);
+                
+                // Update cache with new values
+                for ((user, count) in results.vals()) {
+                    nftCache.put(user, { count = count; timestamp = currentTime });
+                };
+                
+                // Return all users with updated cache values
+                return Array.map<Principal, (Principal, Nat)>(
+                    users,
+                    func (user: Principal) : (Principal, Nat) {
+                        switch (nftCache.get(user)) {
+                            case (?cache) { return (user, cache.count); };
+                            case null { return (user, 0); };
+                        };
+                    }
+                );
+            } catch (_) {
+                // Fallback to individual updates on failure
+                let results = Buffer.Buffer<(Principal, Nat)>(users.size());
+                for (user in users.vals()) {
+                    var count = 0;
+                    switch (nftCache.get(user)) {
+                        case (?cache) { 
+                            if (currentTime - cache.timestamp < CACHE_DURATION) {
+                                // Use cached value if not expired
+                                count := cache.count;
+                            } else {
+                                // Update individually if expired
+                                try {
+                                    count := await wallet.updateNFTCount(user);
+                                    nftCache.put(user, { count = count; timestamp = currentTime });
+                                } catch (_) {
+                                    // Fallback to cache or 0 on error
+                                    count := switch (nftCache.get(user)) {
+                                        case (?c) { c.count };
+                                        case null { 0 };
+                                    };
+                                };
+                            }
+                        };
+                        case null {
+                            // No cache, try to update
+                            try {
+                                count := await wallet.updateNFTCount(user);
+                                nftCache.put(user, { count = count; timestamp = currentTime });
+                            } catch (_) {
+                                count := 0;
+                            };
+                        };
+                    };
+                    results.add((user, count));
+                };
+                return Buffer.toArray(results);
+            };
+        } else {
+            // All users have valid cache, return cached values
+            return Array.map<Principal, (Principal, Nat)>(
+                users,
+                func (user: Principal) : (Principal, Nat) {
+                    switch (nftCache.get(user)) {
+                        case (?cache) { return (user, cache.count); };
+                        case null { return (user, 0); };
+                    };
+                }
+            );
+        };
     };
     
     // Calculate payout with priority
@@ -172,19 +264,33 @@ actor Payout {
         payoutPerPeriod
     };
     
-    // Process batch with retries
+    // Optimized batch processing function with exponential backoff
     private func processBatch(users: [Principal]) : async () {
         let startCycles = Cycles.balance();
-        var retryCount = 0;
         
+        // First, get all NFT counts in a batch to minimize external calls
+        let userCounts = await getCachedNFTCountsBatch(users);
+        let userCountMap = HashMap.HashMap<Principal, Nat>(0, Principal.equal, Principal.hash);
+        
+        // Create a map for quick lookups
+        for ((user, count) in userCounts.vals()) {
+            userCountMap.put(user, count);
+        };
+        
+        // Process users with efficient batching
         for (user in users.vals()) {
+            var retryCount = 0;
             var success = false;
-            while (not success and retryCount < MAX_RETRIES) {
-                try {
-                    let nftCount = await getCachedNFTCount(user);
-                    
-                    if (nftCount > 0) {
-                        let payoutAmount = calculatePayout(nftCount);
+            
+            // Get NFT count from the map
+            let nftCount = Option.get(userCountMap.get(user), 0);
+            
+            if (nftCount > 0) {
+                let payoutAmount = calculatePayout(nftCount);
+                
+                // Process with exponential backoff for retries
+                while (not success and retryCount < MAX_RETRIES) {
+                    try {
                         let transferArgs = {
                             to = user;
                             amount = { e8s = payoutAmount };
@@ -220,17 +326,34 @@ actor Payout {
                             case (#Err(_)) {
                                 failedTransfers += 1;
                                 retryCount += 1;
-                                // Add delay between retries using async/await pattern
-                                await async { };  // Minimal delay
+                                
+                                // Exponential backoff delay
+                                let baseDelay = 1_000_000_000; // 1 second in nanoseconds
+                                let delayNanos = baseDelay * (2 ** (retryCount - 1));
+                                let maxDelay = 10_000_000_000; // 10 seconds in nanoseconds
+                                let actualDelay = Int.min(delayNanos, maxDelay);
+                                
+                                let startDelay = Time.now();
+                                while (Time.now() - startDelay < actualDelay) {
+                                    await async { };  // Minimal delay with yield
+                                };
                             };
                         };
-                    } else {
-                        success := true; // No NFTs, skip
-                    };
-                } catch (_e) {
-                    retryCount += 1;
-                    if (retryCount < MAX_RETRIES) {
-                        await async { };  // Minimal delay between retries
+                    } catch (_) {
+                        retryCount += 1;
+                        
+                        // Same exponential backoff as above
+                        if (retryCount < MAX_RETRIES) {
+                            let baseDelay = 1_000_000_000; // 1 second in nanoseconds
+                            let delayNanos = baseDelay * (2 ** (retryCount - 1));
+                            let maxDelay = 10_000_000_000; // 10 seconds in nanoseconds
+                            let actualDelay = Int.min(delayNanos, maxDelay);
+                            
+                            let startDelay = Time.now();
+                            while (Time.now() - startDelay < actualDelay) {
+                                await async { };  // Minimal delay with yield
+                            };
+                        };
                     };
                 };
             };

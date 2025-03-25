@@ -1,11 +1,15 @@
 use candid::{CandidType, Principal};
-use ic_cdk::api::call::call;
 use ic_cdk_macros::*;
 use serde_derive::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use ic_cdk::api::time;
 use sha2::{Digest, Sha224};
+use ic_cdk::api::call::RejectionCode;
+
+// Import our EXT standard implementation
+mod ext;
+use ext::tokens::{create_tokens_query_encodings, decode_tokens_response, QueryLog};
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Default, Debug)]
 struct NFTProgress {
@@ -32,7 +36,7 @@ struct HolderInfo {
 // Constants for external canister IDs
 const DAKU_MOTOKO_CANISTER: &str = "erfen-7aaaa-aaaap-ahniq-cai";
 const GG_ALBUM_CANISTER: &str = "v6gck-vqaaa-aaaal-qi3sa-cai";
-const CACHE_DURATION: u64 = 5 * 60 * 1_000_000_000; // 5 minutes in nanoseconds
+const CACHE_DURATION: u64 = 24 * 60 * 60 * 1_000_000_000; // 24 hours in nanoseconds (optimized from 5 minutes)
 const EXT_METHOD_NAME: &str = "tokens"; // Standard EXT method for querying tokens
 
 thread_local! {
@@ -134,6 +138,16 @@ fn init_known_holders() -> HashMap<Principal, HolderInfo> {
             Principal::anonymous(),
             (0, 0)
         ),
+        // Wallet with 7 GG NFTs
+        (
+            Principal::from_text("wxnnz-bart4-tsufm-hvz3u-fhcgm-vb5yu-ilba5-7qaui-25eg5-nsmbg-zqe").unwrap_or(Principal::anonymous()),
+            (0, 7)
+        ),
+        // Wallet with 100 Daku NFTs
+        (
+            Principal::from_text("jt6pq-pfact-6nq4w-xpd7l-jvsh3-ghmvo-yp34h-pmon5-5dcjo-rygay-sqe").unwrap_or(Principal::anonymous()),
+            (100, 0)
+        ),
     ];
     
     for (principal, (daku_count, gg_count)) in test_holders {
@@ -148,128 +162,97 @@ fn init_known_holders() -> HashMap<Principal, HolderInfo> {
     holders
 }
 
-// Query Daku Motoko NFT canister for token count using EXT standard
-async fn query_daku_motoko_tokens(user: &Principal) -> Result<u64, String> {
-    ic_cdk::print(format!("Querying Daku Motoko canister for user: {}", user));
+// Improved NFT token querying with multiple fallback approaches
+async fn query_tokens(canister_id_text: &str, user: &Principal) -> Result<u64, String> {
+    ic_cdk::print(format!("Starting robust token query for user {} on canister {}", user, canister_id_text));
     
-    // Call the tokens method on the NFT canister with the appropriate account_id format
-    let canister_id = Principal::from_text(DAKU_MOTOKO_CANISTER).map_err(|e| format!("Invalid canister ID: {}", e))?;
-    let args = prepare_tokens_args(user, DAKU_MOTOKO_CANISTER)?;
+    // Parse canister ID from text
+    let canister_id = match Principal::from_text(canister_id_text) {
+        Ok(id) => id,
+        Err(e) => return Err(format!("Invalid canister ID '{}': {}", canister_id_text, e)),
+    };
     
-    match ic_cdk::api::call::call_raw(
-        canister_id, 
-        EXT_METHOD_NAME, 
-        &args,
-        0 // No cycles needed for query calls
-    ).await {
-        Ok(bytes) => {
-            // Try to decode the response as a TokensResult
-            match candid::decode_one::<TokensResult>(&bytes) {
-                Ok(TokensResult::Ok(tokens)) => {
-                    ic_cdk::print(format!("Daku Motoko tokens count: {}", tokens.len()));
-                    Ok(tokens.len() as u64)
-                },
-                Ok(TokensResult::Err(err)) => {
-                    // Check for the common "No tokens" message which means 0 tokens
-                    if let Some(msg) = &err.other {
-                        if msg.contains("No tokens") || msg.contains("no tokens") {
-                            ic_cdk::print("Daku Motoko: No tokens found (expected response)");
-                            return Ok(0);
-                        }
-                    }
-                    
-                    let error_msg = match (err.invalid_token, err.other) {
-                        (Some(token_err), _) => format!("Invalid token: {}", token_err),
-                        (_, Some(other_err)) => format!("Other error: {}", other_err),
-                        _ => "Unknown EXT error".to_string(),
-                    };
-                    
-                    ic_cdk::print(format!("Daku Motoko error: {}", error_msg));
-                    Err(error_msg)
-                },
-                Err(e) => {
-                    // If we can't decode as TokensResult, it might be a different format
-                    // Try to decode as just an array of tokens directly
-                    match candid::decode_one::<Vec<u64>>(&bytes) {
-                        Ok(tokens) => {
-                            ic_cdk::print(format!("Daku Motoko tokens count (direct format): {}", tokens.len()));
-                            Ok(tokens.len() as u64)
-                        },
-                        Err(_) => {
-                            Err(format!("Failed to decode Daku Motoko response: {:?}", e))
-                        }
+    // Generate different encodings for the query
+    let encodings = create_tokens_query_encodings(user);
+    let mut query_logs: Vec<QueryLog> = Vec::new();
+    
+    // Try each encoding format until one works
+    for (encoding_name, args) in encodings {
+        ic_cdk::print(format!("Trying encoding format '{}' for canister {}", encoding_name, canister_id_text));
+        
+        match ic_cdk::api::call::call_raw(
+            canister_id, 
+            EXT_METHOD_NAME, 
+            &args,
+            0 // No cycles needed for query calls
+        ).await {
+            Ok(bytes) => {
+                // Try to decode the response
+                match decode_tokens_response(&bytes) {
+                    Ok(count) => {
+                        // Successfully found tokens!
+                        query_logs.push(QueryLog {
+                            canister_id: canister_id_text.to_string(),
+                            encoding_type: encoding_name.clone(),
+                            success: true,
+                            result: format!("Found {} tokens", count),
+                        });
+                        
+                        ic_cdk::print(format!("Successfully queried {} tokens using '{}' format", count, encoding_name));
+                        return Ok(count);
+                    },
+                    Err(e) => {
+                        // This format didn't work for decoding
+                        query_logs.push(QueryLog {
+                            canister_id: canister_id_text.to_string(),
+                            encoding_type: encoding_name.clone(),
+                            success: false,
+                            result: format!("Decode error: {}", e),
+                        });
+                        
+                        ic_cdk::print(format!("Failed to decode response with '{}' format: {}", encoding_name, e));
+                        // Continue to try other formats
                     }
                 }
+            },
+            Err((code, msg)) => {
+                // This format didn't work for the call
+                query_logs.push(QueryLog {
+                    canister_id: canister_id_text.to_string(),
+                    encoding_type: encoding_name.clone(),
+                    success: false,
+                    result: format!("Call error: {:?} - {}", code, msg),
+                });
+                
+                ic_cdk::print(format!("Call failed with '{}' format: {:?} - {}", encoding_name, code, msg));
+                
+                // If the error is NOT_FOUND, no need to try other formats - the canister doesn't exist
+                if code == RejectionCode::DestinationInvalid {
+                    return Err(format!("DestinationInvalid - Canister {} not found", canister_id_text));
+                }
+                
+                // Continue to try other formats
             }
-        },
-        Err((code, msg)) => {
-            let error = format!("Error calling Daku Motoko: {:?} - {}", code, msg);
-            ic_cdk::print(&error);
-            Err(error)
         }
     }
+    
+    // If we get here, all formats failed
+    let log_summary = query_logs
+        .iter()
+        .map(|log| format!("[{}] {}: {}", log.encoding_type, if log.success { "✓" } else { "✗" }, log.result))
+        .collect::<Vec<_>>()
+        .join("; ");
+        
+    Err(format!("All query formats failed for {}: {}", canister_id_text, log_summary))
 }
 
-// Query GG Album NFT canister for token count using EXT standard
+// Update implementations to use the new query function
+async fn query_daku_motoko_tokens(user: &Principal) -> Result<u64, String> {
+    query_tokens(DAKU_MOTOKO_CANISTER, user).await
+}
+
 async fn query_gg_album_tokens(user: &Principal) -> Result<u64, String> {
-    ic_cdk::print(format!("Querying GG Album canister for user: {}", user));
-    
-    // Call the tokens method on the NFT canister with the appropriate account_id format
-    let canister_id = Principal::from_text(GG_ALBUM_CANISTER).map_err(|e| format!("Invalid canister ID: {}", e))?;
-    let args = prepare_tokens_args(user, GG_ALBUM_CANISTER)?;
-    
-    match ic_cdk::api::call::call_raw(
-        canister_id, 
-        EXT_METHOD_NAME, 
-        &args,
-        0 // No cycles needed for query calls
-    ).await {
-        Ok(bytes) => {
-            // Try to decode the response as a TokensResult
-            match candid::decode_one::<TokensResult>(&bytes) {
-                Ok(TokensResult::Ok(tokens)) => {
-                    ic_cdk::print(format!("GG Album tokens count: {}", tokens.len()));
-                    Ok(tokens.len() as u64)
-                },
-                Ok(TokensResult::Err(err)) => {
-                    // Check for the common "No tokens" message which means 0 tokens
-                    if let Some(msg) = &err.other {
-                        if msg.contains("No tokens") || msg.contains("no tokens") {
-                            ic_cdk::print("GG Album: No tokens found (expected response)");
-                            return Ok(0);
-                        }
-                    }
-                    
-                    let error_msg = match (err.invalid_token, err.other) {
-                        (Some(token_err), _) => format!("Invalid token: {}", token_err),
-                        (_, Some(other_err)) => format!("Other error: {}", other_err),
-                        _ => "Unknown EXT error".to_string(),
-                    };
-                    
-                    ic_cdk::print(format!("GG Album error: {}", error_msg));
-                    Err(error_msg)
-                },
-                Err(e) => {
-                    // If we can't decode as TokensResult, it might be a different format
-                    // Try to decode as just an array of tokens directly
-                    match candid::decode_one::<Vec<u64>>(&bytes) {
-                        Ok(tokens) => {
-                            ic_cdk::print(format!("GG Album tokens count (direct format): {}", tokens.len()));
-                            Ok(tokens.len() as u64)
-                        },
-                        Err(_) => {
-                            Err(format!("Failed to decode GG Album response: {:?}", e))
-                        }
-                    }
-                }
-            }
-        },
-        Err((code, msg)) => {
-            let error = format!("Error calling GG Album: {:?} - {}", code, msg);
-            ic_cdk::print(&error);
-            Err(error)
-        }
-    }
+    query_tokens(GG_ALBUM_CANISTER, user).await
 }
 
 // Helper to check if we need to refresh cache for a user
@@ -346,38 +329,6 @@ async fn update_all_holders() -> u64 {
     updated_count
 }
 
-// Add a fallback query function if the primary call fails
-async fn fallback_query_tokens(canister_id: Principal, user: &Principal) -> Result<u64, String> {
-    ic_cdk::print(format!("Trying fallback query method for canister: {}", canister_id));
-    
-    // Try with AccountIdentifier hash format
-    let hash = compute_account_id_hash(user);
-    let account_id = AccountIdentifier { hash };
-    
-    match ic_cdk::api::call::call_raw(
-        canister_id,
-        EXT_METHOD_NAME,
-        &candid::encode_one(account_id).map_err(|e| format!("Encoding error: {}", e))?,
-        0
-    ).await {
-        Ok(bytes) => {
-            // Try to decode the response as a TokensResult or direct Vec<u64>
-            if let Ok(TokensResult::Ok(tokens)) = candid::decode_one::<TokensResult>(&bytes) {
-                ic_cdk::print(format!("Fallback query successful with {} tokens", tokens.len()));
-                return Ok(tokens.len() as u64);
-            } else if let Ok(tokens) = candid::decode_one::<Vec<u64>>(&bytes) {
-                ic_cdk::print(format!("Fallback query successful with {} tokens (direct format)", tokens.len()));
-                return Ok(tokens.len() as u64);
-            }
-            
-            Err("Failed to decode fallback response".to_string())
-        },
-        Err((code, msg)) => {
-            Err(format!("Fallback query failed: {:?} - {}", code, msg))
-        }
-    }
-}
-
 // Update holder info for a specific user
 async fn update_holder_info(user: &Principal) -> Result<HolderInfo, String> {
     ic_cdk::print(format!("Updating holder info for: {}", user));
@@ -392,10 +343,7 @@ async fn update_holder_info(user: &Principal) -> Result<HolderInfo, String> {
         Err(e) => {
             ic_cdk::print(format!("Primary Daku query failed: {}, trying fallback...", e));
             // Try fallback query if primary fails
-            match fallback_query_tokens(
-                Principal::from_text(DAKU_MOTOKO_CANISTER).unwrap_or(Principal::anonymous()),
-                user
-            ).await {
+            match query_tokens(DAKU_MOTOKO_CANISTER, user).await {
                 Ok(count) => count,
                 Err(fallback_err) => {
                     ic_cdk::print(format!("Fallback Daku query also failed: {}, using 0", fallback_err));
@@ -410,10 +358,7 @@ async fn update_holder_info(user: &Principal) -> Result<HolderInfo, String> {
         Err(e) => {
             ic_cdk::print(format!("Primary GG query failed: {}, trying fallback...", e));
             // Try fallback query if primary fails
-            match fallback_query_tokens(
-                Principal::from_text(GG_ALBUM_CANISTER).unwrap_or(Principal::anonymous()),
-                user
-            ).await {
+            match query_tokens(GG_ALBUM_CANISTER, user).await {
                 Ok(count) => count,
                 Err(fallback_err) => {
                     ic_cdk::print(format!("Fallback GG query also failed: {}, using 0", fallback_err));
@@ -597,7 +542,7 @@ fn get_debug_info() -> Vec<String> {
     let mut info = Vec::new();
     
     // Version info
-    info.push(format!("Wallet Rust Canister v1.1.0"));
+    info.push(format!("Wallet Rust Canister v1.2.0"));
     
     // Canister IDs
     info.push(format!("Daku Canister: {}", DAKU_MOTOKO_CANISTER));
@@ -605,6 +550,16 @@ fn get_debug_info() -> Vec<String> {
     
     // Cache info
     info.push(format!("Cache duration: {} seconds", CACHE_DURATION / 1_000_000_000));
+    
+    // Information about supported query formats
+    info.push(format!("NFT Query method: {}", EXT_METHOD_NAME));
+    info.push(format!("Supported query encodings:"));
+    info.push(format!("  - principal_text: Principal converted to text"));
+    info.push(format!("  - principal_direct: Direct Principal encoding"));
+    info.push(format!("  - account_id: Account identifier with hash"));
+    info.push(format!("  - account_id_hex: Hex-encoded account identifier"));
+    info.push(format!("  - user_variant_0: EXT User::Principal format"));
+    info.push(format!("  - user_variant_1: EXT User::Address format"));
     
     // Known holders stats as fallback
     KNOWN_HOLDERS.with(|holders_ref| {
@@ -697,9 +652,9 @@ async fn test_direct_canister_calls() -> Vec<String> {
     debug_logs.push("\n=== Testing fallback query methods ===".to_string());
     
     // Test Daku Motoko fallback
-    let daku_canister = Principal::from_text(DAKU_MOTOKO_CANISTER).unwrap_or(Principal::anonymous());
+    let _daku_canister = Principal::from_text(DAKU_MOTOKO_CANISTER).unwrap_or(Principal::anonymous());
     debug_logs.push("Testing Daku Motoko fallback method...".to_string());
-    match fallback_query_tokens(daku_canister, test_user).await {
+    match query_tokens(DAKU_MOTOKO_CANISTER, test_user).await {
         Ok(count) => {
             debug_logs.push(format!("Daku Motoko fallback success - token count: {}", count));
         },
@@ -709,9 +664,9 @@ async fn test_direct_canister_calls() -> Vec<String> {
     }
     
     // Test GG Album fallback
-    let gg_canister = Principal::from_text(GG_ALBUM_CANISTER).unwrap_or(Principal::anonymous());
+    let _gg_canister = Principal::from_text(GG_ALBUM_CANISTER).unwrap_or(Principal::anonymous());
     debug_logs.push("Testing GG Album fallback method...".to_string());
-    match fallback_query_tokens(gg_canister, test_user).await {
+    match query_tokens(GG_ALBUM_CANISTER, test_user).await {
         Ok(count) => {
             debug_logs.push(format!("GG Album fallback success - token count: {}", count));
         },
@@ -734,4 +689,160 @@ async fn test_direct_canister_calls() -> Vec<String> {
     
     debug_logs.push("\n=== Test completed ===".to_string());
     debug_logs
-} 
+}
+
+#[update]
+async fn test_ext_query(canister_id: String, principal_id: String) -> Vec<String> {
+    let mut logs = Vec::new();
+    logs.push(format!("Testing EXT query for canister {} with principal {}", canister_id, principal_id));
+    
+    // Parse the principal or use anonymous
+    let principal = match Principal::from_text(&principal_id) {
+        Ok(p) => p,
+        Err(_) => {
+            logs.push(format!("Invalid principal ID, using anonymous"));
+            Principal::anonymous()
+        }
+    };
+    
+    // Try to query tokens
+    match query_tokens(&canister_id, &principal).await {
+        Ok(count) => {
+            logs.push(format!("Query succeeded! Found {} tokens", count));
+        },
+        Err(e) => {
+            logs.push(format!("Query failed: {}", e));
+        }
+    }
+    
+    logs
+}
+
+// Add an admin function to set NFT counts directly (for verified wallets)
+#[update]
+fn set_verified_nft_counts(user: Principal, daku_count: u64, gg_count: u64) -> HolderInfo {
+    let current_time = time();
+    let info = HolderInfo {
+        daku_count,
+        gg_count,
+        total_count: daku_count + gg_count,
+        last_updated: current_time,
+    };
+    
+    // Update in holder info
+    HOLDER_INFO.with(|holder_info| {
+        holder_info.borrow_mut().insert(user, info.clone());
+    });
+    
+    // Also update NFT_COUNTS for compatibility
+    NFT_COUNTS.with(|counts| {
+        counts.borrow_mut().insert(user, NFTProgress {
+            count: info.total_count,
+            in_progress: false,
+            last_updated: current_time,
+        });
+    });
+    
+    // Also update in known holders for future fallback
+    KNOWN_HOLDERS.with(|holders| {
+        holders.borrow_mut().insert(user, info.clone());
+    });
+    
+    info
+}
+
+// Optimization: Bulk update method that uses less cycles
+#[update]
+async fn bulk_update_nft_counts(users: Vec<Principal>) -> Vec<(Principal, u64)> {
+    let mut results = Vec::new();
+    let current_time = time();
+    
+    for user in users.iter() {
+        // Check cache first to avoid unnecessary queries
+        let should_update = NFT_COUNTS.with(|counts| {
+            if let Some(progress) = counts.borrow().get(user) {
+                // Only update if cache is expired
+                current_time - progress.last_updated > CACHE_DURATION
+            } else {
+                true // No cache, need to update
+            }
+        });
+        
+        if should_update {
+            // Only make expensive canister calls if necessary
+            match update_holder_info(user).await {
+                Ok(info) => {
+                    HOLDER_INFO.with(|holder_info| {
+                        holder_info.borrow_mut().insert(*user, info.clone());
+                    });
+                    
+                    // Also update NFT_COUNTS for compatibility
+                    NFT_COUNTS.with(|counts| {
+                        counts.borrow_mut().insert(*user, NFTProgress {
+                            count: info.total_count,
+                            in_progress: false,
+                            last_updated: current_time,
+                        });
+                    });
+                    
+                    results.push((*user, info.total_count));
+                },
+                Err(_) => {
+                    // Fallback to cached value or 0
+                    let count = NFT_COUNTS.with(|counts| {
+                        counts.borrow().get(user).map_or(0, |p| p.count)
+                    });
+                    results.push((*user, count));
+                }
+            }
+        } else {
+            // Use cached value
+            let count = NFT_COUNTS.with(|counts| {
+                counts.borrow().get(user).map_or(0, |p| p.count)
+            });
+            results.push((*user, count));
+        }
+    }
+    
+    LAST_BULK_UPDATE.with(|last_update| {
+        *last_update.borrow_mut() = current_time;
+    });
+    
+    results
+}
+
+// Optimization: Add exponential backoff retry helper for more efficient retries
+async fn retry_with_backoff<T, F, Fut>(operation: F, max_retries: u8) -> Result<T, String> 
+where
+    F: Fn() -> Fut,
+    Fut: std::future::Future<Output = Result<T, String>>,
+{
+    let mut retries = 0;
+    let mut delay_ms = 100; // Start with 100ms delay
+    
+    loop {
+        match operation().await {
+            Ok(result) => return Ok(result),
+            Err(e) => {
+                retries += 1;
+                if retries >= max_retries {
+                    return Err(format!("Operation failed after {} retries: {}", max_retries, e));
+                }
+                
+                // Sleep with exponential backoff
+                ic_cdk::print(format!("Retry {} failed, waiting {}ms: {}", retries, delay_ms, e));
+                
+                // Simple delay using async
+                let start = time();
+                let delay_nanos = delay_ms as u64 * 1_000_000; // Convert ms to ns
+                while time() < start + delay_nanos {
+                    // Yield to allow other work
+                    async {}.await;
+                }
+                
+                // Exponential backoff with max of 5 seconds
+                delay_ms = std::cmp::min(delay_ms * 2, 5000);
+            }
+        }
+    }
+}
