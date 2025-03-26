@@ -10,7 +10,7 @@ NC='\033[0m' # No Color
 # Ensure the canister ID is set
 export CANISTER_ID=zksib-liaaa-aaaaf-qanva-cai
 
-echo -e "${BLUE}=== World 8 Staking Dashboard Deployment ===${NC}"
+echo -e "${BLUE}=== World 8 Staking Dashboard Clean Deployment ===${NC}"
 
 # Build the production version
 echo -e "${YELLOW}Building production version...${NC}"
@@ -58,14 +58,24 @@ if [ ! -f "dfx.json" ]; then
   echo -e "${GREEN}dfx.json created.${NC}"
 fi
 
-# Deploy to the IC network
-echo -e "${YELLOW}Deploying to IC network...${NC}"
-dfx deploy --network ic frontend --mode=upgrade --no-wallet
+# First, stop the canister
+echo -e "${YELLOW}Stopping the canister...${NC}"
+dfx canister --network ic stop $CANISTER_ID
+
+# Deploy as a fresh install instead of upgrade
+echo -e "${YELLOW}Deploying to IC network with clean install...${NC}"
+dfx deploy --network ic frontend --mode=reinstall --no-wallet
 
 if [ $? -ne 0 ]; then
   echo -e "${RED}Deployment failed. Please check the error messages above.${NC}"
+  # Restart the canister even if deployment failed
+  dfx canister --network ic start $CANISTER_ID
   exit 1
 fi
+
+# Start the canister
+echo -e "${YELLOW}Starting the canister...${NC}"
+dfx canister --network ic start $CANISTER_ID
 
 echo -e "${GREEN}Deployment complete!${NC}"
 echo -e "${BLUE}Visit: https://$CANISTER_ID.icp0.io${NC}"
@@ -73,4 +83,10 @@ echo -e "${BLUE}Visit: https://$CANISTER_ID.icp0.io${NC}"
 # Verify deployment
 echo -e "${YELLOW}Verifying deployment...${NC}"
 echo -e "You can check these URLs after a few minutes:"
-echo -e "${BLUE}Main page: https://$CANISTER_ID.icp0.io${NC}" 
+echo -e "${BLUE}Main page: https://$CANISTER_ID.icp0.io${NC}"
+
+# Clear browser cache instructions
+echo -e "${YELLOW}NOTE: You may need to clear your browser cache to see the changes:${NC}"
+echo -e "1. Chrome/Edge: Press Ctrl+Shift+Delete, check 'Cached images and files', click Clear data"
+echo -e "2. Firefox: Press Ctrl+Shift+Delete, check 'Cache', click Clear Now"
+echo -e "3. Safari: Press Command+Option+E" 

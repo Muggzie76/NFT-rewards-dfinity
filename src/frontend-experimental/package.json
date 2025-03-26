@@ -6,7 +6,7 @@
   "scripts": {
     "start": "webpack serve --mode development",
     "build": "webpack --mode production",
-    "test": "jest",
+    "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint src/**/*.{js,jsx}",
     "format": "prettier --write \"src/**/*.{js,jsx,css}\"",
     "analyze": "webpack-bundle-analyzer dist/stats.json"

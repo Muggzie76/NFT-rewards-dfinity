@@ -6,7 +6,11 @@
       },
       "source": ["dist/"],
       "type": "assets",
-      "canister_id": "zksib-liaaa-aaaaf-qanva-cai"
+      "remote": {
+        "id": {
+          "ic": "zksib-liaaa-aaaaf-qanva-cai"
+        }
+      }
     }
   },
   "defaults": {

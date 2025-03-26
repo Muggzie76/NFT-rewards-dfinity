@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import styled from 'styled-components';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { createPayoutActor, createWalletActor, formatStats, formatUserStats } from '../utils/agent';
 
 // Styled components
@@ -17,7 +17,22 @@ const DashboardContainer = styled.div`
   gap: 15px;
   padding: 15px;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  
+  @media (max-width: 1200px) {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto auto auto auto;
+    height: auto;
+    min-height: 100vh;
+  }
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    gap: 10px;
+    padding: 10px;
+  }
 `;
 
 const Header = styled.header`
@@ -30,11 +45,22 @@ const Header = styled.header`
   border: 1px solid rgba(0, 102, 204, 0.3);
   border-radius: 4px;
   box-shadow: 0 0 20px rgba(0, 102, 204, 0.1);
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+    padding: 15px;
+  }
 
   h1 {
     font-size: 1.5em;
     color: #00ffff;
     text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+    
+    @media (max-width: 768px) {
+      font-size: 1.2em;
+    }
   }
 
   div {
@@ -49,6 +75,16 @@ const Panel = styled.div`
   border-radius: 4px;
   padding: 20px;
   box-shadow: 0 0 20px rgba(0, 102, 204, 0.1);
+  overflow: auto;
+  
+  @media (max-width: 1200px) {
+    grid-column: span 1;
+  }
+  
+  @media (max-width: 768px) {
+    grid-column: 1;
+    padding: 15px;
+  }
   
   h2 {
     color: #00ffff;
@@ -61,6 +97,24 @@ const Panel = styled.div`
     margin-bottom: 10px;
     color: rgba(255, 255, 255, 0.8);
   }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    
+    @media (max-width: 768px) {
+      font-size: 0.9em;
+    }
+    
+    th, td {
+      padding: 8px 4px;
+      text-align: left;
+      
+      @media (max-width: 768px) {
+        padding: 6px 2px;
+      }
+    }
+  }
 `;
 
 const CenterDisplay = styled.div`
@@ -72,6 +126,17 @@ const CenterDisplay = styled.div`
   justify-content: center;
   position: relative;
   gap: 20px;
+  
+  @media (max-width: 1200px) {
+    grid-column: span 2;
+    grid-row: auto;
+  }
+  
+  @media (max-width: 768px) {
+    grid-column: 1;
+    height: 60vh;
+    min-height: 400px;
+  }
 `;
 
 const StatsCounter = styled.div`
@@ -88,12 +153,25 @@ const StatsCounter = styled.div`
   padding: 10px 20px;
   border-radius: 4px;
   border: 1px solid rgba(0, 102, 204, 0.3);
+  
+  @media (max-width: 768px) {
+    position: static;
+    transform: none;
+    font-size: 24px;
+    width: 100%;
+    text-align: center;
+    box-sizing: border-box;
+  }
 `;
 
 const GlobeContainer = styled.div`
   width: 100%;
   height: 80%;
   position: relative;
+  
+  @media (max-width: 768px) {
+    height: 100%;
+  }
 `;
 
 const CountdownTimer = styled.div`
@@ -104,6 +182,12 @@ const CountdownTimer = styled.div`
   text-align: center;
   width: fit-content;
   margin: 0 auto;
+  
+  @media (max-width: 768px) {
+    padding: 10px 20px;
+    width: 100%;
+    box-sizing: border-box;
+  }
 
   .countdown-label {
     color: #00ffff;
@@ -111,12 +195,20 @@ const CountdownTimer = styled.div`
     margin-bottom: 8px;
     text-transform: uppercase;
     letter-spacing: 1px;
+    
+    @media (max-width: 768px) {
+      font-size: 1em;
+    }
   }
 
   .countdown-value {
     font-size: 1.4em;
     font-weight: bold;
     color: #ffffff;
+    
+    @media (max-width: 768px) {
+      font-size: 1.2em;
+    }
     
     span {
       background: rgba(0, 102, 204, 0.3);
@@ -125,6 +217,11 @@ const CountdownTimer = styled.div`
       margin: 0 2px;
       min-width: 40px;
       display: inline-block;
+      
+      @media (max-width: 768px) {
+        padding: 4px 8px;
+        min-width: 30px;
+      }
     }
     
     .separator {
@@ -140,6 +237,11 @@ const WelcomeText = styled.div`
   text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
   text-align: center;
   margin-bottom: 20px;
+  
+  @media (max-width: 768px) {
+    font-size: 1.2em;
+    margin-bottom: 10px;
+  }
 `;
 
 const Footer = styled.footer`
@@ -155,6 +257,16 @@ const Footer = styled.footer`
   color: #00ffff;
   font-size: 0.9em;
   text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+  
+  @media (max-width: 1200px) {
+    grid-row: auto;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 15px;
+    text-align: center;
+    flex-wrap: wrap;
+  }
 
   a {
     color: #00ffff;
@@ -421,72 +533,80 @@ const Dashboard = () => {
 
       <Panel>
         <h2>Rewards History</h2>
-        <LineChart width={300} height={200} data={rewardsHistory}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-          <XAxis dataKey="month" stroke="#00ffff" />
-          <YAxis stroke="#00ffff" />
-          <Tooltip 
-            contentStyle={{ 
-              background: 'rgba(0,31,61,0.9)', 
-              border: '1px solid #00ffff',
-              color: '#00ffff'
-            }}
-          />
-          <Line 
-            type="monotone" 
-            dataKey="value" 
-            name="Total Staked"
-            stroke="#00ffff"
-            strokeWidth={2}
-            dot={{ fill: '#00ffff' }}
-          />
-        </LineChart>
+        <div style={{ width: '100%', height: '200px' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={rewardsHistory}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+              <XAxis dataKey="month" stroke="#00ffff" />
+              <YAxis stroke="#00ffff" />
+              <Tooltip 
+                contentStyle={{ 
+                  background: 'rgba(0,31,61,0.9)', 
+                  border: '1px solid #00ffff',
+                  color: '#00ffff'
+                }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="value" 
+                name="Total Staked"
+                stroke="#00ffff"
+                strokeWidth={2}
+                dot={{ fill: '#00ffff' }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </Panel>
 
       <Panel>
         <h2>Top Stakers</h2>
-        <table style={{ width: '100%', color: 'rgba(255,255,255,0.8)' }}>
-          <thead>
-            <tr style={{ color: '#00ffff' }}>
-              <th>Rank</th>
-              <th>Address</th>
-              <th>NFTs</th>
-              <th>Rewards Rate</th>
-            </tr>
-          </thead>
-          <tbody>
-            {topStakers.map((staker) => (
-              <tr key={staker.rank}>
-                <td>#{staker.rank}</td>
-                <td>{staker.address}</td>
-                <td>{staker.amount.toLocaleString()}</td>
-                <td>{staker.rewardRate}</td>
+        <div className="responsive-table" style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', color: 'rgba(255,255,255,0.8)' }}>
+            <thead>
+              <tr style={{ color: '#00ffff' }}>
+                <th>Rank</th>
+                <th>Address</th>
+                <th>NFTs</th>
+                <th>Rewards Rate</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {topStakers.map((staker) => (
+                <tr key={staker.rank}>
+                  <td>#{staker.rank}</td>
+                  <td>{staker.address}</td>
+                  <td>{staker.amount.toLocaleString()}</td>
+                  <td>{staker.rewardRate}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Panel>
 
       <Panel>
         <h2>NFT Distribution</h2>
-        <table style={{ width: '100%', color: 'rgba(255,255,255,0.8)' }}>
-          <thead>
-            <tr style={{ color: '#00ffff' }}>
-              <th>Range</th>
-              <th>Percentage</th>
-              <th>Stakers</th>
-            </tr>
-          </thead>
-          <tbody>
-            {distributionData.map((item, index) => (
-              <tr key={index}>
-                <td>{item.name}</td>
-                <td>{item.value}%</td>
-                <td>{Math.floor(stats.activeStakers * (parseFloat(item.value) / 100))}</td>
+        <div className="responsive-table" style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', color: 'rgba(255,255,255,0.8)' }}>
+            <thead>
+              <tr style={{ color: '#00ffff' }}>
+                <th>Range</th>
+                <th>Percentage</th>
+                <th>Stakers</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {distributionData.map((item, index) => (
+                <tr key={index}>
+                  <td>{item.name}</td>
+                  <td>{item.value}%</td>
+                  <td>{Math.floor(stats.activeStakers * (parseFloat(item.value) / 100))}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Panel>
 
       <Footer>
