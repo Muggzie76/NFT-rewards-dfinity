@@ -553,9 +553,9 @@ The system uses a caching mechanism (default 5 minutes) to reduce the load on ex
 - Minimum Balance Threshold: 1 token
 
 ### Canister IDs
+- Mainnet Frontend Canister: `zksib-liaaa-aaaaf-qanva-cai`
 - Mainnet Payout Canister: `zeqfj-qyaaa-aaaaf-qanua-cai`
-- Mainnet Wallet Canister: `zeqfj-qyaaa-aaaaf-qanua-cai`
-- Mainnet Zombie Token: `zeqfj-qyaaa-aaaaf-qanua-cai`
+- Mainnet Wallet Canister: `rce3q-iaaaa-aaaap-qpyfa-cai`
 
 ### Admin Controls
 - Emergency Stop Function

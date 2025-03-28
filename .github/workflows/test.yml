@@ -1,5 +1,10 @@
-name: Run Tests
-on: [push, pull_request]
+name: Test World 8 Staking Dapp
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
 
 jobs:
   test:
@@ -8,14 +13,21 @@ jobs:
       - uses: actions/checkout@v2
       
       - name: Setup DFX
-        run: sh -ci "$(curl -fsSL https://sdk.dfinity.org/install.sh)"
+        uses: dfinity/setup-dfx@v1
       
       - name: Start local replica
         run: dfx start --background
       
       - name: Deploy canisters
         run: |
-          dfx deploy --network=local
+          dfx deploy
+          # Configure canister IDs for testing
+          echo "FRONTEND_CANISTER_ID=zksib-liaaa-aaaaf-qanva-cai" >> $GITHUB_ENV
+          echo "PAYOUT_CANISTER_ID=zeqfj-qyaaa-aaaaf-qanua-cai" >> $GITHUB_ENV
+          echo "WALLET_CANISTER_ID=rce3q-iaaaa-aaaap-qpyfa-cai" >> $GITHUB_ENV
+      
+      - name: Run tests
+        run: |
           dfx canister call test_payout test_balance_management
           dfx canister call test_payout test_fee_management
           dfx canister call test_payout test_batch_processing
