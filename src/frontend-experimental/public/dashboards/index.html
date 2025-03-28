@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Redirecting to the new World 8 Dashboard">
-    <meta http-equiv="refresh" content="0; url=/" />
-    <title>Redirecting to New World 8 Dashboard</title>
+    <meta name="description" content="World 8 Staking Dashboard">
+    <title>World 8 Staking Dashboard</title>
     <style>
         body {
             font-family: sans-serif;
@@ -30,6 +29,13 @@
             font-size: 18px;
             line-height: 1.5;
         }
+        .dashboard-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 30px;
+        }
         a {
             background: rgba(0, 31, 61, 0.5);
             border: 1px solid rgba(0, 102, 204, 0.5);
@@ -40,7 +46,6 @@
             font-weight: bold;
             transition: all 0.3s ease;
             display: inline-block;
-            margin-top: 20px;
         }
         a:hover {
             background: rgba(0, 51, 102, 0.7);
@@ -50,10 +55,11 @@
     </style>
 </head>
 <body>
-    <h1>World 8 Dashboard Has Been Upgraded</h1>
-    <p>The dashboards have been consolidated into a new, improved version!</p>
-    <p>You are being redirected to the new dashboard automatically.</p>
-    <p>If you are not redirected automatically, please click the button below:</p>
-    <a href="/">Go to New Dashboard</a>
+    <h1>World 8 Staking Dashboards</h1>
+    <p>Welcome to the World 8 NFT Staking Platform. Please select a dashboard to view:</p>
+    <div class="dashboard-links">
+        <a href="/dashboard/standard">Standard Dashboard</a>
+        <a href="/dashboard/globe">Globe Dashboard</a>
+    </div>
 </body>
 </html> 

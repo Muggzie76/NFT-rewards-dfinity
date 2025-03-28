@@ -39,6 +39,7 @@
     "babel-loader": "^9.1.2",
     "clean-webpack-plugin": "^4.0.0",
     "compression-webpack-plugin": "^10.0.0",
+    "copy-webpack-plugin": "^13.0.0",
     "css-loader": "^6.7.3",
     "dotenv-webpack": "^8.1.0",
     "eslint": "^8.57.1",

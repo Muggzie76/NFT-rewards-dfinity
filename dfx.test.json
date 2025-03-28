@@ -1,0 +1,26 @@
+{
+  "canisters": {
+    "payout": {
+      "main": "src/payout/main.mo",
+      "type": "motoko",
+      "candid": "src/payout/payout.did"
+    },
+    "mock_wallet": {
+      "main": "src/mock_wallet/main.mo",
+      "type": "motoko",
+      "candid": "src/mock_wallet/mock_wallet.did"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8000"
+    }
+  },
+  "version": 1
+} 

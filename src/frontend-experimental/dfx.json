@@ -1,15 +1,10 @@
 {
   "canisters": {
-    "frontend": {
-      "frontend": {
-        "entrypoint": "src/index.jsx"
-      },
-      "source": ["dist/"],
+    "assets": {
       "type": "assets",
-      "remote": {
-        "id": {
-          "ic": "zksib-liaaa-aaaaf-qanva-cai"
-        }
+      "source": ["dist/"],
+      "frontend": {
+        "entrypoint": "dist/index.html"
       }
     }
   },
@@ -21,9 +16,9 @@
   },
   "networks": {
     "ic": {
-      "providers": ["https://ic0.app"],
+      "providers": ["https://icp0.io"],
       "type": "persistent"
     }
   },
   "version": 1
-} 
+}

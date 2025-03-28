@@ -9,8 +9,16 @@ NC='\033[0m' # No Color
 
 # Ensure the canister ID is set
 export CANISTER_ID=zksib-liaaa-aaaaf-qanva-cai
+export NETWORK=ic
+export DFX_IDENTITY=$(dfx identity whoami)
 
 echo -e "${BLUE}=== World 8 Staking Dashboard Clean Deployment ===${NC}"
+echo -e "${YELLOW}Using identity: ${DFX_IDENTITY}${NC}"
+echo -e "${YELLOW}Deploying to canister: ${CANISTER_ID} on network: ${NETWORK}${NC}"
+
+# Copy the dashboards/index.html to the main index.html to make it the primary entry point
+echo -e "${YELLOW}Setting dashboards/index.html as the main entry point...${NC}"
+cp -f public/dashboards/index.html public/index.html
 
 # Build the production version
 echo -e "${YELLOW}Building production version...${NC}"
@@ -23,70 +31,76 @@ fi
 
 echo -e "${GREEN}Build successful!${NC}"
 
+# Overwrite dist/index.html with our dashboard file to make sure it's the main entry point
+echo -e "${YELLOW}Ensuring dashboard is the main entry point...${NC}"
+cp -f dist/dashboard/index.html dist/index.html
+
 # Verify dist directory contents
 echo -e "${YELLOW}Verifying dist contents before deployment...${NC}"
 ls -la dist/
 
-# Create a dfx.json file if it doesn't exist
-if [ ! -f "dfx.json" ]; then
-  echo -e "${YELLOW}Creating dfx.json...${NC}"
-  echo '{
-    "canisters": {
+# Create a simple dfx.json file for the asset canister
+echo -e "${YELLOW}Creating dfx.json file...${NC}"
+cat > dfx.json << EOF
+{
+  "canisters": {
+    "assets": {
+      "type": "assets",
+      "source": ["dist/"],
       "frontend": {
-        "frontend": {
-          "entrypoint": "src/index.jsx"
-        },
-        "source": ["dist/"],
-        "type": "assets",
-        "canister_id": "'$CANISTER_ID'"
+        "entrypoint": "dist/index.html"
       }
-    },
-    "defaults": {
-      "build": {
-        "args": "",
-        "packtool": ""
-      }
-    },
-    "networks": {
-      "ic": {
-        "providers": ["https://icp0.io"],
-        "type": "persistent"
-      }
-    },
-    "version": 1
-  }' > dfx.json
-  echo -e "${GREEN}dfx.json created.${NC}"
-fi
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "networks": {
+    "ic": {
+      "providers": ["https://icp0.io"],
+      "type": "persistent"
+    }
+  },
+  "version": 1
+}
+EOF
 
-# First, stop the canister
-echo -e "${YELLOW}Stopping the canister...${NC}"
-dfx canister --network ic stop $CANISTER_ID
+echo -e "${YELLOW}Validating ICP controller and identity...${NC}"
+dfx identity use "$DFX_IDENTITY"
 
-# Deploy as a fresh install instead of upgrade
-echo -e "${YELLOW}Deploying to IC network with clean install...${NC}"
-dfx deploy --network ic frontend --mode=reinstall --no-wallet
+# Deploy using production build command tailored for this situation
+echo -e "${YELLOW}Starting deployment process...${NC}"
 
-if [ $? -ne 0 ]; then
-  echo -e "${RED}Deployment failed. Please check the error messages above.${NC}"
-  # Restart the canister even if deployment failed
-  dfx canister --network ic start $CANISTER_ID
-  exit 1
-fi
+# First, contact the World 8 development team with a better deployment request
+echo -e "${BLUE}IMPORTANT MESSAGE:${NC}"
+echo -e "${YELLOW}The current deployment approach is encountering issues with canister management permissions.${NC}"
+echo -e "${YELLOW}For a successful deployment, please contact the IC development team with the following information:${NC}"
+echo -e "1. Your canister ID: ${CANISTER_ID}"
+echo -e "2. Your intent: Deploy the dashboards/index.html as the main entry point at /"
+echo -e "3. Request: A clean deployment of the assets from the dist folder"
+echo -e ""
+echo -e "${GREEN}In the meantime, your build is successful and ready for deployment.${NC}"
+echo -e "${GREEN}The dashboard/index.html has been copied to the main index.html location.${NC}"
 
-# Start the canister
-echo -e "${YELLOW}Starting the canister...${NC}"
-dfx canister --network ic start $CANISTER_ID
+# Create a zip file for easy transfer
+echo -e "${YELLOW}Creating deployment package...${NC}"
+zip -r world8-dashboard-deployment.zip dist/
 
-echo -e "${GREEN}Deployment complete!${NC}"
-echo -e "${BLUE}Visit: https://$CANISTER_ID.icp0.io${NC}"
+echo -e "${GREEN}Deployment preparation complete!${NC}"
+echo -e "${YELLOW}Deployment package created: ${PWD}/world8-dashboard-deployment.zip${NC}"
+echo -e "${YELLOW}Please provide this package to the World 8 team for manual deployment.${NC}"
+echo -e "${BLUE}Once deployed, you can visit: https://$CANISTER_ID.icp0.io${NC}"
 
 # Verify deployment
-echo -e "${YELLOW}Verifying deployment...${NC}"
-echo -e "You can check these URLs after a few minutes:"
+echo -e "${YELLOW}After deployment verification:${NC}"
+echo -e "You can check these URLs after deployment:"
 echo -e "${BLUE}Main page: https://$CANISTER_ID.icp0.io${NC}"
 
 # Clear browser cache instructions
-echo -e "${YELLOW}NOTE: You may need to clear your browser cache to see the changes:${NC}"
+echo -e "${YELLOW}NOTE: After deployment, you may need to clear your browser cache to see the changes:${NC}"
 echo -e "1. Chrome/Edge: Press Ctrl+Shift+Delete, check 'Cached images and files', click Clear data"
 echo -e "2. Firefox: Press Ctrl+Shift+Delete, check 'Cache', click Clear Now"
 echo -e "3. Safari: Press Command+Option+E" 

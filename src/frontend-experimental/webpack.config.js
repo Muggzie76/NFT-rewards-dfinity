@@ -5,11 +5,12 @@ const TerserPlugin = require('terser-webpack-plugin');
 const CompressionPlugin = require('compression-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const fs = require('fs');
+const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = (env, argv) => {
   const isProduction = argv.mode === 'production';
 
-  // Read the source HTML to preserve the countdown timer
+  // Read the source HTML
   const indexHtml = fs.readFileSync('./public/index.html', 'utf8');
   
   return {
@@ -46,9 +47,7 @@ module.exports = (env, argv) => {
       extensions: ['.js', '.jsx']
     },
     plugins: [
-      new CleanWebpackPlugin({
-        cleanOnceBeforeBuildPatterns: ['**/*', '!dashboards', '!dashboards/**/*']
-      }),
+      new CleanWebpackPlugin(),
       new HtmlWebpackPlugin({
         template: './public/index.html',
         favicon: './public/favicon.ico',
@@ -70,43 +69,25 @@ module.exports = (env, argv) => {
       new Dotenv({
         systemvars: true
       }),
+      new CopyPlugin({
+        patterns: [
+          { 
+            from: './public/images', 
+            to: 'images' 
+          },
+          {
+            from: './public/dashboards',
+            to: 'dashboard'
+          }
+        ],
+      }),
       ...(isProduction ? [
         new CompressionPlugin({
           algorithm: 'gzip',
           test: /\.(js|css|html|svg)$/,
           threshold: 10240,
           minRatio: 0.8
-        }),
-        // Custom plugin to copy dashboard redirect files
-        {
-          apply: (compiler) => {
-            compiler.hooks.afterEmit.tap('CopyDashboardFiles', (compilation) => {
-              // Create dashboards directory if it doesn't exist
-              const dashboardsDir = path.join(__dirname, 'dist', 'dashboards');
-              if (!fs.existsSync(dashboardsDir)) {
-                fs.mkdirSync(dashboardsDir, { recursive: true });
-              }
-              
-              // Copy the redirect files
-              const files = [
-                'world8_dashboard_complete.html',
-                'world8_globe_dashboard.html'
-              ];
-              
-              files.forEach(file => {
-                const source = path.join(__dirname, 'public', 'dashboards', file);
-                const dest = path.join(dashboardsDir, file);
-                
-                if (fs.existsSync(source)) {
-                  fs.copyFileSync(source, dest);
-                  console.log(`Copied dashboard file: ${file}`);
-                } else {
-                  console.warn(`Dashboard file not found: ${file}`);
-                }
-              });
-            });
-          }
-        }
+        })
       ] : [])
     ],
     optimization: {
