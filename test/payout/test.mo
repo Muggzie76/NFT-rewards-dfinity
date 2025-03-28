@@ -15,7 +15,7 @@ import Payout "../../src/payout/main";
 import Wallet "../../src/wallet/main";
 
 actor class TestPayout(admin: Principal) {
-    let payout_canister = Principal.fromText("bkyz2-fmaaa-aaaaa-qaaaq-cai");
+    let payout_canister = Principal.fromText("zeqfj-qyaaa-aaaaf-qanua-cai");
     let payout = actor(Principal.toText(payout_canister)) : actor {
         get_balance : shared () -> async Nat64;
         get_balance_alerts : shared query () -> async [{ timestamp: Int; alert_type: Text; current_balance: Nat64; threshold: Nat64; message: Text }];

@@ -1,16 +1,31 @@
 {
   "canisters": {
+    "frontend": {
+      "main": "src/frontend/main.mo",
+      "type": "assets",
+      "frontend": {
+        "entrypoint": "src/frontend/index.html"
+      },
+      "declarations": {
+        "output": "declarations"
+      },
+      "source": ["src/frontend/assets", "dist/frontend/"],
+      "candid": "src/frontend/main.did"
+    },
     "payout": {
       "main": "src/payout/main.mo",
-      "type": "motoko"
+      "type": "motoko",
+      "candid": "src/payout/main.did"
     },
     "wallet": {
       "main": "src/wallet/main.mo",
-      "type": "motoko"
+      "type": "motoko",
+      "candid": "src/wallet/main.did"
     },
     "test_payout": {
       "main": "test/payout/test.mo",
-      "type": "motoko"
+      "type": "motoko",
+      "dependencies": ["payout", "wallet"]
     }
   },
   "defaults": {
@@ -28,6 +43,21 @@
       "type": "ephemeral",
       "replica": {
         "subnet_type": "application"
+      }
+    },
+    "ic": {
+      "providers": ["https://ic0.app"],
+      "type": "persistent",
+      "canisters": {
+        "frontend": {
+          "id": "zksib-liaaa-aaaaf-qanva-cai"
+        },
+        "payout": {
+          "id": "zeqfj-qyaaa-aaaaf-qanua-cai"
+        },
+        "wallet": {
+          "id": "rce3q-iaaaa-aaaap-qpyfa-cai"
+        }
       }
     }
   },

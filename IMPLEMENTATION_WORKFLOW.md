@@ -320,6 +320,32 @@ jobs:
 4. Security Tests: Monthly
 5. Full System Tests: Pre-release
 
+## Deployment Information
+
+### Canister IDs
+- Frontend Canister: `zksib-liaaa-aaaaf-qanva-cai`
+- Payout Canister: `zeqfj-qyaaa-aaaaf-qanua-cai`
+- Wallet Canister: `rce3q-iaaaa-aaaap-qpyfa-cai`
+
+### Deployment Instructions
+1. Ensure your identity has controller access to all canisters
+2. Update the canister code with the latest implementation
+3. Run the test suite to ensure all functionality works correctly
+4. Deploy updates to each canister individually, starting with the wallet canister
+
+```bash
+# Deploy wallet canister
+dfx deploy --network=ic wallet
+
+# Deploy payout canister
+dfx deploy --network=ic payout
+
+# Deploy frontend canister
+dfx deploy --network=ic frontend
+```
+
+5. Verify all functionality is working correctly after deployment
+
 ## Deployment Checklist
 
 ### Pre-deployment
