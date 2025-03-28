@@ -1,8 +1,11 @@
 {
-  "wallet": {
+  "wallet_rust": {
     "ic": "rce3q-iaaaa-aaaap-qpyfa-cai"
   },
   "payout": {
     "ic": "zeqfj-qyaaa-aaaaf-qanua-cai"
+  },
+  "frontend": {
+    "ic": "zksib-liaaa-aaaaf-qanva-cai"
   }
 } 

@@ -1,14 +1,16 @@
 {
   "canisters": {
-    "wallet_rust": {
-      "type": "rust",
-      "package": "wallet_rust",
-      "candid": "src/wallet_rust/wallet_rust.did"
-    },
     "payout": {
       "main": "src/payout/main.mo",
-      "type": "motoko",
-      "candid": "src/payout/payout.did"
+      "type": "motoko"
+    },
+    "wallet": {
+      "main": "src/wallet/main.mo",
+      "type": "motoko"
+    },
+    "test_payout": {
+      "main": "test/payout/test.mo",
+      "type": "motoko"
     }
   },
   "defaults": {
@@ -16,28 +18,18 @@
       "args": "",
       "packtool": ""
     },
-    "canisters": {
-      "ic": {
-        "remote": {
-          "id": {
-            "ic": "ryjl3-tyaaa-aaaaa-aaaba-cai"
-          }
-        }
-      }
+    "start": {
+      "args": ""
     }
   },
   "networks": {
     "local": {
-      "bind": "127.0.0.1:8000"
-    },
-    "ic": {
-      "providers": ["https://icp-api.io"]
+      "bind": "127.0.0.1:8000",
+      "type": "ephemeral",
+      "replica": {
+        "subnet_type": "application"
+      }
     }
   },
-  "version": 1,
-  "metadata": [
-    {
-      "name": "candid:service"
-    }
-  ]
+  "version": 1
 } 

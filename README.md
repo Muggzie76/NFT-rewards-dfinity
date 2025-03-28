@@ -1,146 +1,72 @@
-# NFT Staking Payout System
+# World 8 NFT Staking Platform
 
-A decentralized application on the Internet Computer that distributes ICP tokens to users holding NFTs from specific collections.
+This repository contains the complete codebase for the World 8 NFT Staking platform, which allows NFT holders to stake their collections and earn rewards.
 
-## Recent Updates
+## System Overview
 
-### March 2024
-- Upgraded wallet canister to new ID: `rce3q-iaaaa-aaaap-qpyfa-cai`
-- Added comprehensive test suite for wallet functionality
-- Implemented new frontend components for better user experience
-- Enhanced error handling and type safety in payout calculations
-- Added batch processing optimizations for better performance
+The platform consists of several components:
+- **Wallet Canister**: Handles NFT tracking for user wallets
+- **Payout Canister**: Manages rewards distribution and staking calculations
+- **Frontend**: Modern React-based dashboard for users to monitor their stakes and rewards
+- **Supporting Services**: Token handling, NFT registry interfaces, and testing tools
+
+## Project Structure
+
+```
+World 8 Staking Dapp/
+├── src/                          # Source code directory
+│   ├── frontend-experimental/    # React-based user dashboard
+│   ├── payout/                   # Payout canister implementation
+│   ├── wallet_rust/              # Wallet canister implementation
+│   ├── icrc1_token/              # ICRC-1 token implementation
+│   ├── mock_wallet/              # Mock wallet for testing
+│   ├── test_token/               # Test token implementation
+│   └── declarations/             # Generated declarations
+├── data/                         # NFT holder data and analytics
+├── docs/                         # Documentation and guides
+│   ├── guides/                   # Setup and implementation guides
+│   └── screenshots/              # UI screenshots and visual documentation
+├── scripts/                      # Utility scripts for management and deployment
+├── test/                         # Test suite
+└── target/                       # Compiled outputs
+```
 
 ## Features
-
-- Tracks NFT ownership from two collections
-- Calculates and distributes payouts every 5 days
-- 10% APY on NFT holdings
-- Automatic payout distribution via ICP ledger
-- Stable storage for user data and balances
-
-## Prerequisites
-
-- DFX SDK installed
-- Internet Computer CLI tools
-- Sufficient ICP tokens for deployment and funding
+- **NFT Staking**: Stake NFTs from supported collections (Daku Motokos, GG Album, etc.)
+- **Rewards System**: Automatic reward calculations based on staked NFT count
+- **Modern Dashboard**: Clean, responsive UI for tracking stats and rewards
+- **Portfolio View**: Track all your staked NFTs in one place
+- **Reward History**: View past payouts and performance
 
 ## Deployment
-
-1. Start the local network:
-```bash
-dfx start --clean --background
-```
-
-2. Deploy the canisters:
-```bash
-dfx deploy
-```
-
-3. Fund the payout canister with ICP:
-```bash
-dfx ledger transfer --amount 1.0 <PAYOUT_CANISTER_ID>
-```
-
-## Usage
-
-1. Register for payouts:
-```bash
-dfx canister call payout register
-```
-
-2. Check your NFT count:
-```bash
-dfx canister call wallet getNFTCount '(<YOUR_PRINCIPAL>)'
-```
-
-3. Check your balance:
-```bash
-dfx canister call wallet getBalance '(<YOUR_PRINCIPAL>)'
-```
-
-4. Trigger manual payout (admin only):
-```bash
-dfx canister call payout processPayouts
-```
-
-## Mainnet Deployment
-
-1. Deploy to mainnet:
-```bash
-dfx deploy --network ic
-```
-
-2. Fund the payout canister:
-```bash
-dfx ledger transfer --network ic --amount 1.0 <PAYOUT_CANISTER_ID>
-```
-
-## Architecture
-
-- **Wallet Canister**: Tracks NFT ownership and user balances (`rce3q-iaaaa-aaaap-qpyfa-cai`)
-- **Payout Canister**: Manages user registration and distributes ICP tokens
-- **External Canisters**:
-  - NFT Collection 1: `qcg3w-tyaaa-aaaaa-aaaba-cai`
-  - NFT Collection 2: `xkbqi-2qaaa-aaaaa-aaaba-cai`
-  - ICP Ledger: `ryjl3-tyaaa-aaaaa-aaaba-cai`
-
-## NFT Collection Interactions
-
-### Daku Motokos (erfen-7aaaa-aaaap-ahniq-cai)
-
-To check NFT ownership:
-```bash
-# Primary method - Returns full token metadata
-dfx canister --network ic call erfen-7aaaa-aaaap-ahniq-cai getTokens '(principal "<PRINCIPAL_ID>")'
-```
-
-The `getTokens` method returns comprehensive NFT metadata including:
-- Token IDs
-- NFT names (e.g., "Daku Motokos #2343")
-- Complete attribute sets (Background, Hands, Bodies, etc.)
-- Ownership verification
-
-Note: Other standard methods like `balance`, `tokens`, or `tokens_ext` are not supported by this collection. Always use `getTokens` for ownership verification.
-
-### GG Album Release (v6gck-vqaaa-aaaal-qi3sa-cai)
-
-To check NFT ownership:
-```bash
-# Primary method - Returns extended token information
-dfx canister --network ic call v6gck-vqaaa-aaaal-qi3sa-cai tokens_ext '(principal "<PRINCIPAL_ID>")'
-
-# Alternative method - Returns basic token IDs
-dfx canister --network ic call v6gck-vqaaa-aaaal-qi3sa-cai tokens '(principal "<PRINCIPAL_ID>")'
-```
-
-Response details:
-- `tokens_ext`: Returns detailed token metadata including ownership status and token-specific attributes
-- `tokens`: Returns a simplified list of token IDs owned by the principal
-
-Important Implementation Notes:
-1. **Daku Motokos**: Only supports the `getTokens` method. Attempts to use other standard methods (`balance`, `tokens`, `tokens_ext`) will fail.
-2. **GG Album Release**: Supports both `tokens` and `tokens_ext` methods, with `tokens_ext` providing more detailed information.
-
-For integration purposes, always use the primary recommended method for each collection:
-- Daku Motokos: `getTokens`
-- GG Album Release: `tokens_ext`
-
-## Security Considerations
-
-- Payout canister must be funded with sufficient ICP
-- Wallet canister's `updateBalance` function is restricted to payout canister
-- All state changes are persisted in stable storage
-- Heartbeat mechanism ensures regular payouts
+The platform is currently deployed on the Internet Computer with the following canister IDs:
+- Frontend: `zksib-liaaa-aaaaf-qanva-cai`
+- Wallet: `rce3q-iaaaa-aaaap-qpyfa-cai`
+- Access it at: [https://zksib-liaaa-aaaaf-qanva-cai.icp0.io/](https://zksib-liaaa-aaaaf-qanva-cai.icp0.io/)
 
 ## Development
 
+### Prerequisites
+- [DFX](https://internetcomputer.org/docs/current/developer-docs/build/install-upgrade-dfx/) >= 0.14.0
+- Node.js >= 16.0.0
+- Rust >= 1.54.0
+
+### Setup
 1. Clone the repository
-2. Install dependencies
-3. Deploy locally
-4. Test functionality
-5. Deploy to mainnet
+2. Run `npm install` to install dependencies
+3. Run `dfx start --background` to start a local replica
+4. Run `dfx deploy` to deploy all canisters locally
 
-## License
+### Running the Frontend
+```bash
+cd src/frontend-experimental
+npm start
+```
 
-MIT 
+This will start the development server at http://localhost:3000
+
+## Documentation
+For more detailed information, see:
+- [System Documentation](./SYSTEM_DOCUMENTATION.md)
+- [Project Documentation](./PROJECT_DOCUMENTATION.md)
+- Setup guides in the `docs/guides` directory

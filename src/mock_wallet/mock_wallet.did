@@ -1,0 +1,10 @@
+type HolderInfo = record {
+    nft_count: nat64;
+    last_updated: int64;
+};
+
+service : {
+    "get_all_holders": () -> (vec record { principal; HolderInfo });
+    "get_nft_count": (principal) -> (nat) query;
+    "updateBalance": (principal, nat) -> ();
+} 

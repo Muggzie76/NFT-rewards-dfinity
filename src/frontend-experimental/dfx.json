@@ -1,0 +1,24 @@
+{
+  "canisters": {
+    "assets": {
+      "type": "assets",
+      "source": ["dist/"],
+      "frontend": {
+        "entrypoint": "dist/index.html"
+      }
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "networks": {
+    "ic": {
+      "providers": ["https://icp0.io"],
+      "type": "persistent"
+    }
+  },
+  "version": 1
+}

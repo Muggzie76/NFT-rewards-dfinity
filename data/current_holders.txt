@@ -1,0 +1,31 @@
+(
+  vec {
+    record {
+      principal "nixkj-77c5e-q7qik-ewuhi-hp4gs-oggzq-fj2v5-62cdz-amjrc-pz2nz-oqe";
+      record {
+        gg_count = 0 : nat64;
+        daku_count = 4 : nat64;
+        last_updated = 1_742_879_120_113_033_556 : nat64;
+        total_count = 4 : nat64;
+      };
+    };
+    record {
+      principal "jt6pq-pfact-6nq4w-xpd7l-jvsh3-ghmvo-yp34h-pmon5-5dcjo-rygay-sqe";
+      record {
+        gg_count = 0 : nat64;
+        daku_count = 100 : nat64;
+        last_updated = 1_742_877_970_070_290_264 : nat64;
+        total_count = 100 : nat64;
+      };
+    };
+    record {
+      principal "kwte6-azsaw-mek5y-mkcya-4wkkp-fhb76-wzqtt-lwsxz-amgs4-h2wxy-eqe";
+      record {
+        gg_count = 6 : nat64;
+        daku_count = 22 : nat64;
+        last_updated = 1_742_879_124_267_875_012 : nat64;
+        total_count = 28 : nat64;
+      };
+    };
+  },
+)

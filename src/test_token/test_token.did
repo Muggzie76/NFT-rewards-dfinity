@@ -1,0 +1,42 @@
+type Account = record {
+    owner: principal;
+    subaccount: opt blob;
+};
+
+type TransferArg = record {
+    from_subaccount: opt blob;
+    to: Account;
+    amount: nat;
+    fee: opt nat;
+    memo: opt blob;
+    created_at_time: opt nat64;
+};
+
+type TransferError = variant {
+    BadFee: record { expected_fee: nat };
+    BadBurn: record { min_burn_amount: nat };
+    InsufficientFunds: record { balance: nat };
+    TooOld;
+    CreatedInFuture: record { ledger_time: nat64 };
+    Duplicate: record { duplicate_of: nat };
+    TemporarilyUnavailable;
+    GenericError: record { error_code: nat; message: text };
+};
+
+type TransferResult = variant {
+    Ok: nat;
+    Err: TransferError;
+};
+
+service : {
+    name: () -> (text) query;
+    symbol: () -> (text) query;
+    decimals: () -> (nat64) query;
+    fee: () -> (nat64) query;
+    total_supply: () -> (nat64) query;
+    balance_of: (principal) -> (nat64) query;
+    transfer: (principal, nat64) -> (bool);
+    icrc1_transfer: (TransferArg) -> (TransferResult);
+    icrc1_balance_of: (Account) -> (nat) query;
+    mint: (principal, nat64) -> (bool);
+} 

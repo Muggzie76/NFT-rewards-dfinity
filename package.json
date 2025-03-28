@@ -1,21 +1,51 @@
 {
-  "name": "world-8-staking-dapp",
+  "name": "world-8-rewards-dapp",
   "version": "1.0.0",
-  "description": "NFT Staking DApp on Internet Computer",
+  "description": "NFT Rewards DApp on Internet Computer",
   "type": "module",
   "main": "test/wallet_rust_test.js",
   "scripts": {
-    "test": "mocha test/wallet_rust_test.js"
+    "test": "mocha test/wallet_rust_test.js",
+    "start": "vite",
+    "build": "tsc && vite build",
+    "dev:dfx": "dfx start --clean --background && dfx deploy",
+    "dev:vite": "vite",
+    "dev": "npm run dev:dfx && npm run dev:vite",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "@dfinity/agent": "^0.20.2",
-    "@dfinity/auth-client": "^2.3.0",
-    "@dfinity/candid": "^0.20.2",
-    "@dfinity/principal": "^0.20.2"
+    "@dfinity/agent": "^0.15.6",
+    "@dfinity/auth-client": "^0.15.6",
+    "@dfinity/candid": "0.15.6",
+    "@dfinity/identity": "0.15.6",
+    "@dfinity/principal": "^0.15.6",
+    "buffer": "^6.0.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.30.0",
+    "styled-jsx": "^5.1.6",
+    "three": "^0.174.0",
+    "three-mesh-bvh": "^0.9.0"
   },
   "devDependencies": {
-    "@types/react": "^19.0.12",
+    "@babel/core": "^7.24.0",
+    "@babel/preset-react": "^7.23.3",
+    "@babel/preset-typescript": "^7.23.3",
+    "@types/node": "^22.13.13",
+    "@types/react": "^18.3.20",
+    "@types/react-dom": "^18.3.5",
     "@types/react-router-dom": "^5.3.3",
-    "mocha": "^10.3.0"
+    "@vitejs/plugin-react": "^4.3.4",
+    "babel-loader": "^9.1.3",
+    "css-loader": "^6.10.0",
+    "dotenv-webpack": "^8.0.1",
+    "mocha": "^10.3.0",
+    "style-loader": "^3.3.4",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.4.2",
+    "vite": "^6.2.3",
+    "webpack": "^5.90.3",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^5.0.2"
   }
 }
