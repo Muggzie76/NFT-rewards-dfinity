@@ -1,0 +1,36 @@
+{
+  "canisters": {
+    "payout": {
+      "main": "src/payout/main.mo",
+      "type": "motoko"
+    },
+    "wallet": {
+      "main": "src/wallet/main.mo",
+      "type": "motoko"
+    },
+    "test_payout": {
+      "main": "test/payout/test.mo",
+      "type": "motoko",
+      "dependencies": ["payout", "wallet"]
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    },
+    "start": {
+      "args": ""
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8000",
+      "type": "ephemeral",
+      "replica": {
+        "subnet_type": "application"
+      }
+    }
+  },
+  "version": 1
+} 

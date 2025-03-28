@@ -1,0 +1,30 @@
+name: Run Tests
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Setup DFX
+        run: sh -ci "$(curl -fsSL https://sdk.dfinity.org/install.sh)"
+      
+      - name: Start local replica
+        run: dfx start --background
+      
+      - name: Deploy canisters
+        run: |
+          dfx deploy --network=local
+          dfx canister call test_payout test_balance_management
+          dfx canister call test_payout test_fee_management
+          dfx canister call test_payout test_batch_processing
+          dfx canister call test_payout test_full_payout_process
+          dfx canister call test_payout test_error_recovery
+          dfx canister call test_payout test_system_under_load
+          dfx canister call test_payout test_system_stress
+          dfx canister call test_payout test_access_control
+          dfx canister call test_payout test_balance_protection
+      
+      - name: Stop local replica
+        run: dfx stop 
