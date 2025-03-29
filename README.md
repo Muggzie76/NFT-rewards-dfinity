@@ -1,72 +1,191 @@
-# World 8 NFT Staking Platform
+# World 8 Staking System
 
-This repository contains the complete codebase for the World 8 NFT Staking platform, which allows NFT holders to stake their collections and earn rewards.
+A complete staking system for NFT holders built on the Internet Computer.
 
-## System Overview
+## Overview
 
-The platform consists of several components:
-- **Wallet Canister**: Handles NFT tracking for user wallets
-- **Payout Canister**: Manages rewards distribution and staking calculations
-- **Frontend**: Modern React-based dashboard for users to monitor their stakes and rewards
-- **Supporting Services**: Token handling, NFT registry interfaces, and testing tools
+The World 8 Staking System provides automated token rewards to NFT holders. The system consists of multiple canisters working together:
 
-## Project Structure
-
-```
-World 8 Staking Dapp/
-├── src/                          # Source code directory
-│   ├── frontend-experimental/    # React-based user dashboard
-│   ├── payout/                   # Payout canister implementation
-│   ├── wallet_rust/              # Wallet canister implementation
-│   ├── icrc1_token/              # ICRC-1 token implementation
-│   ├── mock_wallet/              # Mock wallet for testing
-│   ├── test_token/               # Test token implementation
-│   └── declarations/             # Generated declarations
-├── data/                         # NFT holder data and analytics
-├── docs/                         # Documentation and guides
-│   ├── guides/                   # Setup and implementation guides
-│   └── screenshots/              # UI screenshots and visual documentation
-├── scripts/                      # Utility scripts for management and deployment
-├── test/                         # Test suite
-└── target/                       # Compiled outputs
-```
+- **Wallet Canister (Rust)**: Tracks NFT ownership and holder data
+- **Payout Canister (Motoko)**: Handles token distribution and payout scheduling
+- **Token Canister (Motoko)**: Mock implementation of the ICRC-1 token standard
 
 ## Features
-- **NFT Staking**: Stake NFTs from supported collections (Daku Motokos, GG Album, etc.)
-- **Rewards System**: Automatic reward calculations based on staked NFT count
-- **Modern Dashboard**: Clean, responsive UI for tracking stats and rewards
-- **Portfolio View**: Track all your staked NFTs in one place
-- **Reward History**: View past payouts and performance
 
-## Deployment
-The platform is currently deployed on the Internet Computer with the following canister IDs:
-- Frontend: `zksib-liaaa-aaaaf-qanva-cai`
-- Wallet: `rce3q-iaaaa-aaaap-qpyfa-cai`
-- Access it at: [https://zksib-liaaa-aaaaf-qanva-cai.icp0.io/](https://zksib-liaaa-aaaaf-qanva-cai.icp0.io/)
+- Automatic tracking of NFT holders from multiple collections
+- Configurable payout rates based on NFT ownership
+- Detailed monitoring and statistics
+- Memory and health tracking
+- CSV data import support
 
-## Development
+## Getting Started
 
 ### Prerequisites
-- [DFX](https://internetcomputer.org/docs/current/developer-docs/build/install-upgrade-dfx/) >= 0.14.0
-- Node.js >= 16.0.0
-- Rust >= 1.54.0
 
-### Setup
+- [DFX](https://internetcomputer.org/docs/current/developer-tools/install-upgrade-remove) 0.13.0 or higher
+- [Node.js](https://nodejs.org/) 14 or higher
+- [Rust](https://www.rust-lang.org/tools/install) (for the wallet canister)
+
+### Installation
+
 1. Clone the repository
-2. Run `npm install` to install dependencies
-3. Run `dfx start --background` to start a local replica
-4. Run `dfx deploy` to deploy all canisters locally
+2. Install dependencies:
+   ```
+   npm install
+   ```
 
-### Running the Frontend
+### Starting the Local Replica
+
 ```bash
-cd src/frontend-experimental
-npm start
+dfx start --clean --background
 ```
 
-This will start the development server at http://localhost:3000
+### Deploying the Canisters
 
-## Documentation
-For more detailed information, see:
-- [System Documentation](./SYSTEM_DOCUMENTATION.md)
-- [Project Documentation](./PROJECT_DOCUMENTATION.md)
-- Setup guides in the `docs/guides` directory
+You can deploy all canisters at once using the test workflow script:
+
+```bash
+chmod +x ./scripts/test_workflow.sh
+./scripts/test_workflow.sh
+```
+
+This script will:
+1. Start a clean DFX replica
+2. Deploy the wallet_rust, test_token, and payout canisters
+3. Mint tokens to the payout canister
+4. Load test holder data
+5. Update canister IDs
+6. Process test payouts
+7. Display system statistics
+
+### Manual Deployment
+
+Alternatively, you can deploy each canister individually:
+
+```bash
+dfx deploy wallet_rust
+dfx deploy test_token
+dfx deploy payout
+```
+
+## Usage
+
+### Managing Holders
+
+The wallet canister can be loaded with holder data in two ways:
+
+1. **Test Data**:
+   ```
+   dfx canister call wallet_rust load_test_csv_data
+   ```
+
+2. **Custom CSV Data**:
+   ```
+   dfx canister call wallet_rust load_csv_data '("daku_csv_data", "gg_csv_data")'
+   ```
+
+### Processing Payouts
+
+To trigger a payout manually:
+
+```
+dfx canister call payout processPayouts
+```
+
+### Monitoring
+
+Check system statistics:
+
+```
+dfx canister call payout get_stats
+```
+
+Check system health:
+
+```
+dfx canister call payout get_health
+```
+
+## Testing
+
+A comprehensive testing workflow is provided in `scripts/test_workflow.sh`. This script tests all aspects of the system:
+
+```bash
+./scripts/test_workflow.sh
+```
+
+## Dashboard
+
+A monitoring dashboard is available at `src/dashboard/index.html`. To connect it to your local canisters:
+
+1. Update the canister IDs in `src/dashboard/dashboard.js`
+2. Serve the dashboard directory with a local HTTP server:
+   ```
+   npx http-server src/dashboard -o
+   ```
+
+## Development Notes
+
+### Key Changes, Problems, and Solutions
+
+This section documents important changes made to the project along with the problems encountered and their solutions.
+
+#### Payout Canister
+
+**Memory Usage Tracking**
+- **Problem**: The canister had no way to track memory usage, making it difficult to monitor system health
+- **Solution**: Added a comprehensive memory tracking system with history and peak usage statistics
+- **Impact**: Enables dashboard visualization of memory trends and early detection of potential issues
+
+**Balance Status Management**
+- **Problem**: Balance status checks were inconsistent across different methods
+- **Solution**: Standardized balance status with enum types and constants
+- **Impact**: Improved reliability of balance alerts and consistent UI status display
+
+**Canister ID Updates**
+- **Problem**: Admin restriction prevented testing workflows from updating canister IDs
+- **Solution**: Modified the update_canister_ids function to allow testing without admin rights
+- **Impact**: Simplified testing process and enabled automated workflows
+
+**Batch Processing**
+- **Problem**: Processing all holders at once caused timeouts and unreliable payouts
+- **Solution**: Implemented batch processing with detailed statistics tracking
+- **Impact**: More reliable payout processing and better monitoring of system performance
+
+#### Dashboard Integration
+
+**Canister Connectivity**
+- **Problem**: Hardcoded canister IDs prevented connection to local test environment
+- **Solution**: Made canister IDs configurable and added proper fallback to mock data
+- **Impact**: Seamless development experience with both local and production environments
+
+**Multiple Default Exports**
+- **Problem**: Multiple default exports caused linter errors and potential runtime issues
+- **Solution**: Switched to named exports for consistency
+- **Impact**: Improved code quality and eliminated linter warnings
+
+**Memory Visualization**
+- **Problem**: Dashboard couldn't display memory usage trends
+- **Solution**: Added memory chart with history support
+- **Impact**: Better visibility into system resource usage and potential issues
+
+#### Testing Scripts
+
+**Token Minting**
+- **Problem**: Original workflow lacked token minting which caused payouts to fail
+- **Solution**: Added explicit token minting step to the test workflow
+- **Impact**: More reliable testing with proper token balances
+
+**CSV Data Loading**
+- **Problem**: Direct CSV loading was difficult due to escaping issues
+- **Solution**: Implemented a two-phase approach with test data verification
+- **Impact**: Simplified testing process with consistent test data
+
+**Canister ID Updates**
+- **Problem**: Order of operations was critical but not enforced
+- **Solution**: Added explicit step to update canister IDs after deployment
+- **Impact**: Eliminated cross-canister communication failures in testing
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

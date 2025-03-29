@@ -24,4 +24,8 @@ service : {
     "update_nft_count": (principal) -> (nat64);
     "set_verified_nft_counts": (principal, nat64, nat64) -> (HolderInfo);
     "bulk_update_nft_counts": (vec principal) -> (vec record { principal; nat64 });
+    "load_csv_data": (text, text) -> (bool);
+    "load_test_csv_data": () -> (bool);
+    "is_using_csv_data": () -> (bool) query;
+    "get_total_holders": () -> (nat64) query;
 } 

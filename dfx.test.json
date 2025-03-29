@@ -2,13 +2,23 @@
   "canisters": {
     "payout": {
       "main": "src/payout/main.mo",
-      "type": "motoko",
-      "candid": "src/payout/payout.did"
+      "type": "motoko"
     },
-    "mock_wallet": {
-      "main": "src/mock_wallet/main.mo",
+    "wallet": {
+      "type": "rust",
+      "package": "wallet_rust",
+      "source": ["src/wallet_rust/Cargo.toml"],
+      "candid": "src/wallet_rust/wallet_rust.did"
+    },
+    "test_payout": {
+      "main": "test/payout/test.mo",
       "type": "motoko",
-      "candid": "src/mock_wallet/mock_wallet.did"
+      "dependencies": ["payout", "wallet"]
+    },
+    "test_wallet": {
+      "main": "test/wallet/test.mo",
+      "type": "motoko",
+      "dependencies": ["wallet"]
     }
   },
   "defaults": {
@@ -19,7 +29,11 @@
   },
   "networks": {
     "local": {
-      "bind": "127.0.0.1:8000"
+      "bind": "127.0.0.1:8000",
+      "type": "ephemeral",
+      "replica": {
+        "subnet_type": "application"
+      }
     }
   },
   "version": 1

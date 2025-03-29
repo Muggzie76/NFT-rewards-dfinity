@@ -76,6 +76,8 @@ mkdir -p test/wallet
 
 ## Testing Strategy
 
+> **Note:** As of the latest update, the wallet implementation has been migrated from Motoko to Rust. All tests should use the Rust implementation in `src/wallet_rust`. The Motoko implementation in `src/wallet` is deprecated and maintained only for reference.
+
 Our testing strategy covers multiple aspects of the Staking Dapp to ensure reliability, security, and performance. The strategy is divided into the following categories:
 
 1. **Balance Management Tests**: Verify thresholds, alerts, and status reporting
