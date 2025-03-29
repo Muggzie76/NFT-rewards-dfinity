@@ -17,15 +17,44 @@
       "type": "motoko",
       "candid": "src/payout/main.did"
     },
-    "wallet": {
-      "main": "src/wallet/main.mo",
-      "type": "motoko",
-      "candid": "src/wallet/main.did"
+    "wallet_rust": {
+      "type": "rust",
+      "package": "wallet_rust",
+      "source": ["src/wallet_rust/Cargo.toml"],
+      "candid": "src/wallet_rust/wallet_rust.did"
+    },
+    "mock_token": {
+      "main": "src/mock_token/main.mo",
+      "type": "motoko"
+    },
+    "test_token": {
+      "main": "src/mock_token/main.mo",
+      "type": "motoko"
     },
     "test_payout": {
       "main": "test/payout/test.mo",
       "type": "motoko",
-      "dependencies": ["payout", "wallet"]
+      "dependencies": ["payout", "wallet_rust", "mock_token"]
+    },
+    "test_payout_load": {
+      "main": "test/payout/load_test.mo",
+      "type": "motoko",
+      "dependencies": ["payout"]
+    },
+    "test_memory": {
+      "main": "test/payout/memory_test.mo",
+      "type": "motoko",
+      "dependencies": ["payout"]
+    },
+    "test_e2e": {
+      "main": "test/payout/e2e_test.mo",
+      "type": "motoko",
+      "dependencies": ["payout", "wallet_rust", "mock_token"]
+    },
+    "test_security": {
+      "main": "test/payout/security_test.mo",
+      "type": "motoko",
+      "dependencies": ["payout"]
     }
   },
   "defaults": {
@@ -55,7 +84,7 @@
         "payout": {
           "id": "zeqfj-qyaaa-aaaaf-qanua-cai"
         },
-        "wallet": {
+        "wallet_rust": {
           "id": "rce3q-iaaaa-aaaap-qpyfa-cai"
         }
       }

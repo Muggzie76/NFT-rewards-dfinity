@@ -17,11 +17,14 @@ mod daku_interface;
 mod gg_album_interface;
 mod nft_registry_interface;
 mod gg_registry_interface;
+mod csv_loader;
+
 use ext::tokens::{create_tokens_query_encodings, decode_tokens_response, QueryLog};
 use daku_interface::get_tokens_for_user;
 use gg_album_interface::get_album_tokens_for_user;
 use nft_registry_interface::{TokenOwner, DakuRegistryRecord, get_registry_raw, get_registry_tokens, get_registry_map, get_registry_entries, get_registry_daku_records};
 use gg_registry_interface::{GGRegistryRecord, get_gg_registry_raw, get_gg_registry_records, get_gg_registry_tokens, get_gg_registry_map, get_gg_tokens_for_owner};
+use csv_loader::{load_all_holders, HolderInfo};
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Default, Debug)]
 struct NFTProgress {
@@ -37,14 +40,6 @@ struct NFTRecord {
     metadata: Vec<(String, String)>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Default, Debug)]
-struct HolderInfo {
-    daku_count: u64,
-    gg_count: u64,
-    total_count: u64,
-    last_updated: u64,
-}
-
 // Constants for external canister IDs
 const DAKU_MOTOKO_CANISTER: &str = "erfen-7aaaa-aaaap-ahniq-cai";
 const GG_ALBUM_CANISTER: &str = "v2ekv-yyaaa-aaaag-qjw2q-cai";
@@ -58,6 +53,239 @@ thread_local! {
     static LAST_BULK_UPDATE: RefCell<u64> = RefCell::new(0);
     // We'll keep known holders as fallback but prioritize real data
     static KNOWN_HOLDERS: RefCell<HashMap<Principal, HolderInfo>> = RefCell::default();
+    
+    // Store CSV data for holders
+    static DAKU_CSV_DATA: RefCell<String> = RefCell::new(String::new());
+    static GG_CSV_DATA: RefCell<String> = RefCell::new(String::new());
+    static CSV_DATA_LOADED: RefCell<bool> = RefCell::new(false);
+}
+
+// Default HolderInfo function
+fn default_holder_info() -> HolderInfo {
+    HolderInfo {
+        daku_count: 0,
+        gg_count: 0,
+        total_count: 0,
+        last_updated: time(),
+    }
+}
+
+// Load CSV data into the canister
+#[update]
+fn load_csv_data(daku_csv: String, gg_csv: String) -> bool {
+    ic_cdk::print("Loading CSV data...");
+    
+    // Store the CSV data
+    DAKU_CSV_DATA.with(|data| {
+        *data.borrow_mut() = daku_csv.clone();
+    });
+    
+    GG_CSV_DATA.with(|data| {
+        *data.borrow_mut() = gg_csv.clone();
+    });
+    
+    // Parse and load the data
+    let holders = load_all_holders(&daku_csv, &gg_csv);
+    
+    // Store the parsed data
+    HOLDER_INFO.with(|holder_info| {
+        *holder_info.borrow_mut() = holders.clone();
+    });
+    
+    // Update NFT_COUNTS for compatibility
+    let current_time = time();
+    for (principal, info) in holders.iter() {
+        NFT_COUNTS.with(|counts| {
+            counts.borrow_mut().insert(*principal, NFTProgress {
+                count: info.total_count,
+                in_progress: false,
+                last_updated: current_time,
+            });
+        });
+    }
+    
+    // Mark data as loaded
+    CSV_DATA_LOADED.with(|loaded| {
+        *loaded.borrow_mut() = true;
+    });
+    
+    LAST_BULK_UPDATE.with(|last_update| {
+        *last_update.borrow_mut() = current_time;
+    });
+    
+    ic_cdk::print(format!("Loaded data for {} holders", holders.len()));
+    true
+}
+
+// Load test CSV data for development
+#[update]
+fn load_test_csv_data() -> bool {
+    let (daku_csv, gg_csv) = csv_loader::generate_test_csv_data();
+    load_csv_data(daku_csv, gg_csv)
+}
+
+// Function to update all holder information
+#[update]
+async fn update_all_holders() -> u64 {
+    let current_time = time();
+    
+    // Check if CSV data is loaded
+    let csv_loaded = CSV_DATA_LOADED.with(|loaded| {
+        *loaded.borrow()
+    });
+    
+    if csv_loaded {
+        // If CSV data is loaded, use that instead of querying external canisters
+        let daku_csv = DAKU_CSV_DATA.with(|data| {
+            data.borrow().clone()
+        });
+        
+        let gg_csv = GG_CSV_DATA.with(|data| {
+            data.borrow().clone()
+        });
+        
+        // Parse and load the data
+        let holders = load_all_holders(&daku_csv, &gg_csv);
+        
+        // Store the parsed data
+        HOLDER_INFO.with(|holder_info| {
+            *holder_info.borrow_mut() = holders.clone();
+        });
+        
+        // Update NFT_COUNTS for compatibility
+        for (principal, info) in holders.iter() {
+            NFT_COUNTS.with(|counts| {
+                counts.borrow_mut().insert(*principal, NFTProgress {
+                    count: info.total_count,
+                    in_progress: false,
+                    last_updated: current_time,
+                });
+            });
+        }
+        
+        LAST_BULK_UPDATE.with(|last_update| {
+            *last_update.borrow_mut() = current_time;
+        });
+        
+        ic_cdk::print(format!("Refreshed data for {} holders from CSV", holders.len()));
+        return holders.len() as u64;
+    }
+    
+    // Log the start of the operation
+    ic_cdk::print(format!("Starting update_all_holders at timestamp: {}", current_time));
+    
+    // Get all principals to update
+    let principals = HOLDER_INFO.with(|holder_info| {
+        let info = holder_info.borrow();
+        info.keys().cloned().collect::<Vec<Principal>>()
+    });
+    
+    // Add known principals for a more complete update
+    let additional_principals = KNOWN_HOLDERS.with(|holders_ref| {
+        let mut holders = holders_ref.borrow_mut();
+        if holders.is_empty() {
+            *holders = init_known_holders();
+        }
+        holders.keys().cloned().collect::<Vec<Principal>>()
+    });
+    
+    // Combine and deduplicate principals
+    let mut all_principals = principals;
+    for principal in additional_principals {
+        if !all_principals.contains(&principal) {
+            all_principals.push(principal);
+        }
+    }
+    
+    let mut updated_count = 0;
+    
+    // Update each principal
+    for principal in all_principals {
+        if let Ok(info) = update_holder_info(&principal).await {
+            HOLDER_INFO.with(|holder_info| {
+                holder_info.borrow_mut().insert(principal, info.clone());
+            });
+            
+            // Also update NFT_COUNTS for compatibility
+            NFT_COUNTS.with(|counts| {
+                counts.borrow_mut().insert(principal, NFTProgress {
+                    count: info.total_count,
+                    in_progress: false,
+                    last_updated: current_time,
+                });
+            });
+            
+            updated_count += 1;
+        }
+    }
+    
+    LAST_BULK_UPDATE.with(|last_update| {
+        *last_update.borrow_mut() = current_time;
+    });
+    
+    ic_cdk::print(format!("Completed update_all_holders, updated {} holders", updated_count));
+    updated_count
+}
+
+// Function to get all holder information
+#[query]
+fn get_all_holders() -> Vec<(Principal, HolderInfo)> {
+    // First check if CSV data is loaded
+    let csv_loaded = CSV_DATA_LOADED.with(|loaded| {
+        *loaded.borrow()
+    });
+    
+    if csv_loaded {
+        // Return data from holders loaded from CSV
+        HOLDER_INFO.with(|holder_info| {
+            let info = holder_info.borrow();
+            info.iter()
+                .map(|(k, v)| (*k, v.clone()))
+                .collect()
+        })
+    } else {
+        // First check if we have data in HOLDER_INFO
+        let holder_info = HOLDER_INFO.with(|holder_info| {
+            let info = holder_info.borrow();
+            if !info.is_empty() {
+                return info.clone();
+            }
+            HashMap::new()
+        });
+        
+        // If no data, use known holders
+        if holder_info.is_empty() {
+            KNOWN_HOLDERS.with(|holders_ref| {
+                let mut holders = holders_ref.borrow_mut();
+                if holders.is_empty() {
+                    *holders = init_known_holders();
+                }
+                holders.iter()
+                    .map(|(k, v)| (*k, v.clone()))
+                    .collect()
+            })
+        } else {
+            holder_info.iter()
+                .map(|(k, v)| (*k, v.clone()))
+                .collect()
+        }
+    }
+}
+
+// Check if we're using CSV data
+#[query]
+fn is_using_csv_data() -> bool {
+    CSV_DATA_LOADED.with(|loaded| {
+        *loaded.borrow()
+    })
+}
+
+// Get total number of holders in the system
+#[query]
+fn get_total_holders() -> u64 {
+    HOLDER_INFO.with(|holder_info| {
+        holder_info.borrow().len() as u64
+    })
 }
 
 // EXT standard types for NFT interaction
@@ -300,67 +528,6 @@ fn should_refresh_cache(user: &Principal) -> bool {
     })
 }
 
-// Function to update all holder information
-#[update]
-async fn update_all_holders() -> u64 {
-    let current_time = time();
-    
-    // Log the start of the operation
-    ic_cdk::print(format!("Starting update_all_holders at timestamp: {}", current_time));
-    
-    // Get all principals to update
-    let principals = HOLDER_INFO.with(|holder_info| {
-        let info = holder_info.borrow();
-        info.keys().cloned().collect::<Vec<Principal>>()
-    });
-    
-    // Add known principals for a more complete update
-    let additional_principals = KNOWN_HOLDERS.with(|holders_ref| {
-        let mut holders = holders_ref.borrow_mut();
-        if holders.is_empty() {
-            *holders = init_known_holders();
-        }
-        holders.keys().cloned().collect::<Vec<Principal>>()
-    });
-    
-    // Combine and deduplicate principals
-    let mut all_principals = principals;
-    for principal in additional_principals {
-        if !all_principals.contains(&principal) {
-            all_principals.push(principal);
-        }
-    }
-    
-    let mut updated_count = 0;
-    
-    // Update each principal
-    for principal in all_principals {
-        if let Ok(info) = update_holder_info(&principal).await {
-            HOLDER_INFO.with(|holder_info| {
-                holder_info.borrow_mut().insert(principal, info.clone());
-            });
-            
-            // Also update NFT_COUNTS for compatibility
-            NFT_COUNTS.with(|counts| {
-                counts.borrow_mut().insert(principal, NFTProgress {
-                    count: info.total_count,
-                    in_progress: false,
-                    last_updated: current_time,
-                });
-            });
-            
-            updated_count += 1;
-        }
-    }
-    
-    LAST_BULK_UPDATE.with(|last_update| {
-        *last_update.borrow_mut() = current_time;
-    });
-    
-    ic_cdk::print(format!("Completed update_all_holders, updated {} holders", updated_count));
-    updated_count
-}
-
 // Update holder info for a specific user
 async fn update_holder_info(user: &Principal) -> Result<HolderInfo, String> {
     ic_cdk::print(format!("Updating holder info for: {}", user));
@@ -415,36 +582,6 @@ async fn update_holder_info(user: &Principal) -> Result<HolderInfo, String> {
                          daku_count, gg_count, total_count));
     
     Ok(info)
-}
-
-// Function to get all holder information
-#[query]
-fn get_all_holders() -> Vec<(Principal, HolderInfo)> {
-    // First check if we have data in HOLDER_INFO
-    let holder_info = HOLDER_INFO.with(|holder_info| {
-        let info = holder_info.borrow();
-        if !info.is_empty() {
-            return info.clone();
-        }
-        HashMap::new()
-    });
-    
-    // If no data, use known holders
-    if holder_info.is_empty() {
-        KNOWN_HOLDERS.with(|holders_ref| {
-            let mut holders = holders_ref.borrow_mut();
-            if holders.is_empty() {
-                *holders = init_known_holders();
-            }
-            holders.iter()
-                .map(|(k, v)| (*k, v.clone()))
-                .collect()
-        })
-    } else {
-        holder_info.iter()
-            .map(|(k, v)| (*k, v.clone()))
-            .collect()
-    }
 }
 
 // Get NFT count for a specific user

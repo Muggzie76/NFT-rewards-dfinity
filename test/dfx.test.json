@@ -5,13 +5,20 @@
       "type": "motoko"
     },
     "wallet": {
-      "main": "src/wallet/main.mo",
-      "type": "motoko"
+      "type": "rust",
+      "package": "wallet_rust",
+      "source": ["src/wallet_rust/Cargo.toml"],
+      "candid": "src/wallet_rust/wallet_rust.did"
     },
     "test_payout": {
       "main": "test/payout/test.mo",
       "type": "motoko",
       "dependencies": ["payout", "wallet"]
+    },
+    "test_wallet": {
+      "main": "test/wallet/test.mo",
+      "type": "motoko",
+      "dependencies": ["wallet"]
     }
   },
   "defaults": {

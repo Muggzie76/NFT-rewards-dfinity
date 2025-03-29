@@ -1,42 +1,197 @@
-name: Test World 8 Staking Dapp
+name: World 8 Staking System CI/CD
 
 on:
   push:
     branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sundays at midnight
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       
-      - name: Setup DFX
-        uses: dfinity/setup-dfx@v1
-      
-      - name: Start local replica
-        run: dfx start --background
-      
-      - name: Deploy canisters
+      - name: Install dfx
         run: |
-          dfx deploy
-          # Configure canister IDs for testing
-          echo "FRONTEND_CANISTER_ID=zksib-liaaa-aaaaf-qanva-cai" >> $GITHUB_ENV
-          echo "PAYOUT_CANISTER_ID=zeqfj-qyaaa-aaaaf-qanua-cai" >> $GITHUB_ENV
-          echo "WALLET_CANISTER_ID=rce3q-iaaaa-aaaap-qpyfa-cai" >> $GITHUB_ENV
+          wget -O install-dfx.sh https://internetcomputer.org/install.sh
+          chmod +x install-dfx.sh
+          ./install-dfx.sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
       
-      - name: Run tests
+      - name: Start local Internet Computer replica
         run: |
-          dfx canister call test_payout test_balance_management
-          dfx canister call test_payout test_fee_management
-          dfx canister call test_payout test_batch_processing
-          dfx canister call test_payout test_full_payout_process
-          dfx canister call test_payout test_error_recovery
-          dfx canister call test_payout test_system_under_load
-          dfx canister call test_payout test_system_stress
-          dfx canister call test_payout test_access_control
-          dfx canister call test_payout test_balance_protection
+          dfx start --background
       
-      - name: Stop local replica
-        run: dfx stop 
+      - name: Build all canisters
+        run: |
+          dfx canister create --all
+          dfx build
+      
+      - name: Run unit tests
+        run: |
+          dfx canister install test_payout
+          dfx canister call test_payout run_all_tests
+      
+      - name: Run memory tests
+        run: |
+          dfx canister install test_memory --argument="(principal \"$(dfx canister id payout)\")"
+          dfx canister call test_memory runStandardMemoryTest
+      
+      - name: Run security tests
+        run: |
+          dfx canister install test_security --argument="(principal \"$(dfx canister id payout)\")"
+          dfx canister call test_security runAllSecurityTests
+      
+      - name: Generate test reports
+        run: |
+          mkdir -p test-reports
+          dfx canister call test_payout get_test_report > test-reports/unit-tests.txt
+          dfx canister call test_memory generateMemoryReport > test-reports/memory-tests.txt
+          dfx canister call test_security generateSecurityReport > test-reports/security-tests.txt
+      
+      - name: Upload test reports
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-reports
+          path: test-reports/
+
+  performance:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Install dfx
+        run: |
+          wget -O install-dfx.sh https://internetcomputer.org/install.sh
+          chmod +x install-dfx.sh
+          ./install-dfx.sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      
+      - name: Start local Internet Computer replica
+        run: |
+          dfx start --background
+      
+      - name: Build canisters
+        run: |
+          dfx canister create --all
+          dfx build
+      
+      - name: Run load tests
+        run: |
+          dfx canister install test_payout_load --argument="(principal \"$(dfx canister id payout)\")"
+          dfx canister call test_payout_load runStandardLoadTest
+          dfx canister call test_payout_load runHighVolumeLoadTest '(500)'
+      
+      - name: Generate performance report
+        run: |
+          mkdir -p performance-reports
+          dfx canister call test_payout_load generateTestSummary > performance-reports/load-tests.txt
+      
+      - name: Upload performance reports
+        uses: actions/upload-artifact@v2
+        with:
+          name: performance-reports
+          path: performance-reports/
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Install dfx
+        run: |
+          wget -O install-dfx.sh https://internetcomputer.org/install.sh
+          chmod +x install-dfx.sh
+          ./install-dfx.sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      
+      - name: Start local Internet Computer replica
+        run: |
+          dfx start --background
+      
+      - name: Build canisters
+        run: |
+          dfx canister create --all
+          dfx build
+      
+      - name: Run end-to-end tests
+        run: |
+          dfx canister install test_e2e --argument="(principal \"$(dfx canister id payout)\", principal \"$(dfx canister id wallet)\", principal \"$(dfx canister id mock_token)\")"
+          dfx canister call test_e2e runE2ETest
+      
+      - name: Generate E2E report
+        run: |
+          mkdir -p e2e-reports
+          dfx canister call test_e2e generateTestReport > e2e-reports/e2e-tests.txt
+      
+      - name: Upload E2E reports
+        uses: actions/upload-artifact@v2
+        with:
+          name: e2e-reports
+          path: e2e-reports/
+
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: [build, performance, e2e]
+    if: github.ref == 'refs/heads/develop'
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Install dfx
+        run: |
+          wget -O install-dfx.sh https://internetcomputer.org/install.sh
+          chmod +x install-dfx.sh
+          ./install-dfx.sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      
+      - name: Configure Internet Computer network
+        run: |
+          echo ${{ secrets.DFX_IDENTITY }} > identity.pem
+          chmod 600 identity.pem
+          dfx identity import ci-cd identity.pem
+          dfx identity use ci-cd
+      
+      - name: Deploy to staging network
+        run: |
+          dfx deploy --network staging
+      
+      - name: Run post-deployment tests
+        run: |
+          dfx canister --network staging call payout get_health
+          dfx canister --network staging call payout get_stats
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: [build, performance, e2e]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Install dfx
+        run: |
+          wget -O install-dfx.sh https://internetcomputer.org/install.sh
+          chmod +x install-dfx.sh
+          ./install-dfx.sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      
+      - name: Configure Internet Computer network
+        run: |
+          echo ${{ secrets.DFX_IDENTITY }} > identity.pem
+          chmod 600 identity.pem
+          dfx identity import ci-cd identity.pem
+          dfx identity use ci-cd
+      
+      - name: Deploy to production network
+        run: |
+          dfx deploy --network ic
+      
+      - name: Verify deployment
+        run: |
+          dfx canister --network ic call payout get_health
+          dfx canister --network ic call payout get_stats 
