@@ -11,7 +11,7 @@ The payout canister is responsible for distributing ZOMB token rewards to NFT ho
 - **Payout Canister ID**: `zeqfj-qyaaa-aaaaf-qanua-cai`
 - **Wallet Canister ID**: `rce3q-iaaaa-aaaap-qpyfa-cai`
 - **Frontend Canister ID**: `zksib-liaaa-aaaaf-qanva-cai`
-- **Token Canister ID**: `db3eq-6iaaa-aaaah-qbjbq-cai` (ZOMB token)
+- **Token Canister ID**: `rwdg7-ciaaa-aaaam-qczja-cai` (ZOMB token)
 
 ## Core Features
 

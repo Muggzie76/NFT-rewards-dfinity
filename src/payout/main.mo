@@ -160,7 +160,7 @@ actor Self {
     private let WALLET_CANISTER_ID : Text = "rce3q-iaaaa-aaaap-qpyfa-cai";
     private let PAYOUT_CANISTER_ID : Text = "zeqfj-qyaaa-aaaaf-qanua-cai";
     private let FRONTEND_CANISTER_ID : Text = "zksib-liaaa-aaaaf-qanva-cai";
-    private let TOKEN_CANISTER_ID : Text = "db3eq-6iaaa-aaaah-qbjbq-cai"; // ZOMB token
+    private let TOKEN_CANISTER_ID : Text = "rwdg7-ciaaa-aaaam-qczja-cai"; // ZOMB token
     
     // State variables for stable storage
     private stable var user_stats_stable : [(Principal, UserStats)] = [];
