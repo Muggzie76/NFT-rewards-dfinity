@@ -20,6 +20,6 @@
       "declarations/*": ["src/declarations/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "world8-dashboard-deployment"],
   "references": [{ "path": "./tsconfig.node.json" }]
 } 
