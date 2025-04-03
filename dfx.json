@@ -1,16 +1,12 @@
 {
   "canisters": {
     "frontend": {
-      "main": "src/frontend/main.mo",
       "type": "assets",
+      "source": ["src/AMAZING DASHBOARD/dist"],
+      "build": ["cd \"src/AMAZING DASHBOARD\" && npm install && npm run build"],
       "frontend": {
-        "entrypoint": "src/frontend/index.html"
-      },
-      "declarations": {
-        "output": "declarations"
-      },
-      "source": ["src/frontend/assets", "dist/frontend/"],
-      "candid": "src/frontend/main.did"
+        "entrypoint": "src/AMAZING DASHBOARD/dist/index.html"
+      }
     },
     "payout": {
       "main": "src/payout/main.mo",
@@ -22,6 +18,10 @@
       "package": "wallet_rust",
       "source": ["src/wallet_rust/Cargo.toml"],
       "candid": "src/wallet_rust/wallet_rust.did"
+    },
+    "load_holder_data": {
+      "main": "src/tools/load_holder_data.mo",
+      "type": "motoko"
     },
     "mock_token": {
       "main": "src/mock_token/main.mo",

@@ -1,0 +1,109 @@
+type User = principal;
+
+type UserStats = record {
+    nft_count: nat64;
+    last_payout_amount: nat64;
+    last_payout_time: int;
+    total_payouts_received: nat64;
+};
+
+type Stats = record {
+    total_registered_users: nat64;
+    last_payout_time: int;
+    next_payout_time: int;
+    total_payouts_processed: nat64;
+    total_payout_amount: nat64;
+    failed_transfers: nat64;
+    is_processing: bool;
+    average_payout_amount: nat64;
+    success_rate: nat64;
+    last_error: opt text;
+    total_holders: nat64;
+    active_holders: nat64;
+    processing_time_ms: nat64;
+    balance_status: text;
+    balance_alerts: vec BalanceAlert;
+    current_network_fee: nat64;
+    average_network_fee: nat64;
+    fee_history: vec FeeRecord;
+    batch_processing_stats: BatchStats;
+};
+
+type BalanceAlert = record {
+    timestamp: int;
+    alert_type: text;
+    current_balance: nat64;
+    threshold: nat64;
+    message: text;
+};
+
+type FeeRecord = record {
+    timestamp: int;
+    fee: nat64;
+    network_load: nat64;
+    success: bool;
+};
+
+type BatchStats = record {
+    total_batches: nat64;
+    successful_batches: nat64;
+    failed_batches: nat64;
+    average_batch_size: nat64;
+    average_batch_processing_time: nat64;
+    last_batch_size: nat64;
+};
+
+// HTTP Request/Response types for serving the dashboard
+type HeaderField = record { text; text; };
+
+type HttpRequest = record {
+    url : text;
+    method : text;
+    body : blob;
+    headers : vec HeaderField;
+};
+
+type HttpResponse = record {
+    body : blob;
+    headers : vec HeaderField;
+    status_code : nat16;
+    streaming_strategy : opt StreamingStrategy;
+};
+
+type StreamingCallbackToken = record {
+    key : text;
+    sha256 : opt blob;
+    index : nat;
+    content_encoding : text;
+};
+
+type StreamingCallbackHttpResponse = record {
+    body : blob;
+    token : opt StreamingCallbackToken;
+};
+
+type StreamingStrategy = variant {
+    Callback : record {
+        token : StreamingCallbackToken;
+        callback : func (StreamingCallbackToken) -> (StreamingCallbackHttpResponse) query;
+    };
+};
+
+service : {
+    "register": () -> ();
+    "processPayouts": () -> ();
+    "heartbeat": () -> ();
+    "get_stats": () -> (Stats) query;
+    "get_user_stats": (principal) -> (UserStats) query;
+    "get_all_user_stats": () -> (vec record { principal; UserStats }) query;
+    "get_health": () -> (bool) query;
+    
+    // Dashboard asset hosting functions
+    "http_request": (HttpRequest) -> (HttpResponse) query;
+    "http_request_streaming_callback": (StreamingCallbackToken) -> (StreamingCallbackHttpResponse) query;
+    "store_asset": (record { key: text; content_type: text; content_encoding: text; content: blob; }) -> ();
+    "clear_assets": () -> ();
+    
+    // Canister management
+    "update_canister_ids": (principal, principal) -> ();
+} 
