@@ -1,0 +1,15 @@
+{
+  "name": "holder-data-loader",
+  "version": "1.0.0",
+  "description": "Tool to load holder data and trigger payouts for World 8 Staking Dapp",
+  "main": "load_holder_data.js",
+  "scripts": {
+    "start": "node load_holder_data.js"
+  },
+  "dependencies": {
+    "@dfinity/agent": "^0.15.6",
+    "@dfinity/candid": "^0.15.6",
+    "@dfinity/principal": "^0.15.6",
+    "@dfinity/identity": "^0.15.6"
+  }
+} 

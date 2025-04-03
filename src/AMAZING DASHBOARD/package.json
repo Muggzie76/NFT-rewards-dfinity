@@ -11,6 +11,8 @@
   "author": "Muggzie",
   "license": "ISC",
   "dependencies": {
+    "@dfinity/agent": "^2.4.0",
+    "@dfinity/principal": "^2.4.0",
     "@react-three/drei": "^9.80.1",
     "@react-three/fiber": "^8.13.6",
     "axios": "^1.4.0",
@@ -36,4 +38,4 @@
     "webpack-cli": "^5.1.4",
     "webpack-dev-server": "^4.15.1"
   }
-} 
+}

@@ -525,21 +525,21 @@ const AmazingDashboard = () => {
               { icon: "💎", value: "87%", color: "#c10000" },
               { icon: "🎸", value: "92%", color: "#c10000" }
             ]}
-            onClick={() => alert('Buy Grungy Geezer clicked!')}
+            onClick={() => window.open('https://dgdg.app/nfts/collections/gg_album_release', '_blank')}
           />
           
           <CollectionCard 
             title="Daku Motokos #714"
             image={imageUrls.dakuMotokos}
             actionText="BUY DAKU MOTOKOS"
-            onClick={() => alert('Buy Daku Motoko clicked!')}
+            onClick={() => window.open('https://dgdg.app/nfts/collections/daku', '_blank')}
           />
           
           <CollectionCard 
             title="IC ZOMBIES"
             image={imageUrls.icZombies}
             actionText="BUY ZOMBIE"
-            onClick={() => alert('Buy IC Zombie clicked!')}
+            onClick={() => window.open('https://app.icpswap.com/swap/pro?input=ryjl3-tyaaa-aaaaa-aaaba-cai&output=rwdg7-ciaaa-aaaam-qczja-cai', '_blank')}
           />
         </CollectionContainer>
       </Sidebar>
@@ -551,14 +551,14 @@ const AmazingDashboard = () => {
         </Header>
         
         <ActionBar>
-          <a href="#">
+          <a href="https://www.world8.io/merch" target="_blank" rel="noopener noreferrer">
             <span>Buy WORLD 8 Merch Now</span>
           </a>
           
           <CollectionButtons>
-            <button className="active">Grungy Geezers</button>
-            <button>Daku Motokos</button>
-            <button>IC Zombies</button>
+            <button className="active" onClick={() => window.open('https://www.grungygeezers.com', '_blank')}>Grungy Geezers</button>
+            <button onClick={() => window.open('https://www.world8.io', '_blank')}>Daku Motokos</button>
+            <button onClick={() => window.open('https://www.iczombies.com', '_blank')}>IC Zombies</button>
           </CollectionButtons>
         </ActionBar>
         
@@ -692,7 +692,7 @@ const AmazingDashboard = () => {
                 <th>GG Album NFTs</th>
                 <th>Total NFTs</th>
                 <th>% Staked</th>
-                <th>Rewards Earned</th>
+                <th>Zombie Earned</th>
               </tr>
             </thead>
             <tbody>
@@ -721,7 +721,7 @@ const AmazingDashboard = () => {
                 <th>Time</th>
                 <th>Principal ID</th>
                 <th>NFT Count</th>
-                <th>$W8 Amount</th>
+                <th>Zombie Earned</th>
                 <th>TXN Hash</th>
               </tr>
             </thead>
